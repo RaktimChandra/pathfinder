@@ -1,0 +1,32 @@
+{
+  "team": "SRMIST_vortexxx",
+  "track": "Track 03 - Path Finder: Trajectory Estimation Under Sensor Degradation",
+  "entrypoint": "python src/main.py <imu0/data.csv | folder | zip> estimated_trajectory.txt",
+  "input_rows": 27837,
+  "unique_timestamps": 27803,
+  "imu_failure_rows": 1001,
+  "sequence_duration_s": 143.555,
+  "detected_platform": "euroc_adis16448",
+  "runtime": {
+    "cpu_s": 0.299,
+    "wall_s": 0.2992,
+    "ms_per_1s_of_imu": 2.082,
+    "budget_ms_per_1s": 20.0
+  },
+  "memory": {
+    "peak_heap_mb_tracemalloc": 3.226,
+    "budget_mb": 8.0,
+    "measured": "algorithm heap via tracemalloc (interpreter RSS excluded, per FAQ)"
+  },
+  "threads": 1,
+  "network": false,
+  "gpu": false,
+  "dependencies": {
+    "python": "3.13.18",
+    "numpy": "2.5.3"
+  },
+  "machine": {
+    "system": "Linux",
+    "processor": "x86_64"
+  }
+}

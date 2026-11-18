@@ -1,0 +1,5 @@
+# evaluation harness only (not needed to run src/main.py)
+numpy>=1.23
+pandas
+evo>=1.20
+matplotlib

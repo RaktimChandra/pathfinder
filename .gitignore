@@ -1,0 +1,7 @@
+data/
+results/*.txt
+results/*.png
+__pycache__/
+*.pyc
+deck/x/
+tools/degrade_imu.py
