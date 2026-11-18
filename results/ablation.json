@@ -1,0 +1,72 @@
+{
+ "final": {
+  "EuRoC": {
+   "ate_rmse": 1.4050101772737078,
+   "waypoint_rmse": 1.4023314499106914,
+   "blind5_rmse": 1.9045025298329634,
+   "dropout_rmse": 1.3966676272447307
+  },
+  "TUM-VI": {
+   "ate_rmse": 0.4911031236960685,
+   "waypoint_rmse": 0.5248517673660396,
+   "blind5_rmse": 0.7341883110922898,
+   "dropout_rmse": 0.6486158276522006
+  }
+ },
+ "no rotor-drag velocity": {
+  "EuRoC": {
+   "ate_rmse": 1.66891400341535,
+   "waypoint_rmse": 1.614097834871463,
+   "blind5_rmse": 1.8965118465953332,
+   "dropout_rmse": 1.6566162041672832
+  },
+  "TUM-VI": {
+   "ate_rmse": 0.4911031236960685,
+   "waypoint_rmse": 0.5248517673660396,
+   "blind5_rmse": 0.7341883110922898,
+   "dropout_rmse": 0.6486158276522006
+  }
+ },
+ "no degradation-aware noise": {
+  "EuRoC": {
+   "ate_rmse": 1.9449082782131384,
+   "waypoint_rmse": 1.8723865472283077,
+   "blind5_rmse": 3.269527250496188,
+   "dropout_rmse": 2.361082675434678
+  },
+  "TUM-VI": {
+   "ate_rmse": 1.4222507093551664,
+   "waypoint_rmse": 1.3026498925551746,
+   "blind5_rmse": 2.6446804709416827,
+   "dropout_rmse": 2.0703238485667583
+  }
+ },
+ "no rest-period bias / ZUPT": {
+  "EuRoC": {
+   "ate_rmse": 1.5238575743774363,
+   "waypoint_rmse": 1.370588343038845,
+   "blind5_rmse": 1.8636875314955315,
+   "dropout_rmse": 1.3299599280257484
+  },
+  "TUM-VI": {
+   "ate_rmse": 0.4911031236960685,
+   "waypoint_rmse": 0.5248517673660396,
+   "blind5_rmse": 0.7341883110922898,
+   "dropout_rmse": 0.6486158276522006
+  }
+ },
+ "constant-velocity blind window": {
+  "EuRoC": {
+   "ate_rmse": 1.4062902928704744,
+   "waypoint_rmse": 1.403182643975088,
+   "blind5_rmse": 1.9204589610286245,
+   "dropout_rmse": 1.3974250376263115
+  },
+  "TUM-VI": {
+   "ate_rmse": 0.49098565287405604,
+   "waypoint_rmse": 0.5256571202551497,
+   "blind5_rmse": 0.7379050098053384,
+   "dropout_rmse": 0.6459291622360253
+  }
+ }
+}

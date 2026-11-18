@@ -39,7 +39,7 @@ PLATFORMS = {
         "g_dir": np.array([0.9376, -0.0538, -0.3434]),
         "gyro_bias": np.array([-0.0018, 0.0233, 0.0776]),
         "drag_axes": None,  # thrust-perpendicular basis computed from g_dir
-        "drag_k": np.array([-0.1814, -0.2105]),  # LOO-validated fit (fit_drag.py)
+        "drag_k": np.array([-0.1665, -0.2010]),  # fit on 5 EuRoC sequences; LOO folds within +-0.01 (fit_drag.py)
         "multirotor": True,
         "params": {"grav_ref": "body"},
     },
@@ -48,13 +48,13 @@ UNKNOWN_PLATFORM_PARAMS = {"grav_ref": "world", "kp_w": 0.05, "ki_w": 0.002, "ta
 FINGERPRINT_COS = 0.97  # ~14 deg cone
 
 P_DEFAULT = dict(
-    block=0.1,          # smoother step [s]
+    block=0.4,          # smoother step [s] (2.5 Hz: averages rotor vibration, ~4x cheaper)
     qa=0.1,             # accel process noise [m/s^2 /sqrt(Hz)]-ish
     qb=0.003,           # world accel-offset random walk
     qd=0.0003,          # body drag-offset random walk
     v0=0.5, b0=0.6, d0=1.0,
     room_h=3.0, room_v=1.0,
-    rdrag=0.07,         # drag observation noise (body accel, m/s^2, at block rate)
+    rdrag=0.10,         # drag observation noise (body accel, m/s^2, at block rate)
     blind_qa=1.0,       # accel process noise while IMU is dead
     kp=0.02, ki=0.002, lp=1.0, att_block=0.1,
     static_gyro_std=0.06, static_acc_std=1.05,
@@ -298,7 +298,7 @@ def identify_platform(t, a, valid):
     return best, g
 
 
-def detect_static_start(t, W, A, valid, blk=0.25, max_t=30.0):
+def detect_static_start(t, W, A, valid, blk=0.25, max_t=30.0, P=None):
     """Initial rest period (on the ground / before take-off). Returns end time (s from start)
     of the confidently-static prefix, and the gyro mean over it (= gyro bias)."""
     m = valid & (t < max_t)
@@ -316,7 +316,8 @@ def detect_static_start(t, W, A, valid, blk=0.25, max_t=30.0):
     Wm, Ws = bstat(W[m]); Am, As = bstat(A[m])
     an = np.linalg.norm(Am, axis=1)
     g_ref = np.median(an[ok][: max(1, min(int(ok.sum()), 4))])
-    static = ok & (Ws < P_DEFAULT["static_gyro_std"]) & (As < P_DEFAULT["static_acc_std"]) & (np.abs(an - g_ref) < 0.25)
+    P = P_DEFAULT if P is None else P
+    static = ok & (Ws < P["static_gyro_std"]) & (As < P["static_acc_std"]) & (np.abs(an - g_ref) < 0.25)
     # gyro mean must be steady (no slow rotation)
     if nb > 1:
         dW = np.zeros(nb); dW[1:] = np.linalg.norm(Wm[1:] - Wm[:-1], axis=1)
@@ -741,7 +742,7 @@ def run(inp, out, P=None, return_state=False):
     P.update(PLATFORMS[platform].get("params", {}) if platform else UNKNOWN_PLATFORM_PARAMS)
     P.update(user_P)
     b0 = PLATFORMS[platform]["gyro_bias"] if platform else np.zeros(3)
-    t_static, b_static = detect_static_start(t, W, A, valid)
+    t_static, b_static = detect_static_start(t, W, A, valid, P=P)
     if P["use_static_bias"] and b_static is not None and t_static >= 0.75:
         b0 = b_static
     dtb = P["block"]

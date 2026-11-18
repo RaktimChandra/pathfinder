@@ -1,6 +1,7 @@
 data/
 results/*.txt
 results/*.png
+video/
 __pycache__/
 *.pyc
 deck/x/

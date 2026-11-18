@@ -8,13 +8,13 @@
   "sequence_duration_s": 143.555,
   "detected_platform": "euroc_adis16448",
   "runtime": {
-    "cpu_s": 0.299,
-    "wall_s": 0.2992,
-    "ms_per_1s_of_imu": 2.082,
+    "cpu_s": 0.1669,
+    "wall_s": 0.1707,
+    "ms_per_1s_of_imu": 1.163,
     "budget_ms_per_1s": 20.0
   },
   "memory": {
-    "peak_heap_mb_tracemalloc": 3.226,
+    "peak_heap_mb_tracemalloc": 2.962,
     "budget_mb": 8.0,
     "measured": "algorithm heap via tracemalloc (interpreter RSS excluded, per FAQ)"
   },

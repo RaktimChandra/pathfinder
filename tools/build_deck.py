@@ -26,7 +26,7 @@ def seqmean(key, method, metric='ate_rmse'):
     return np.mean([R[k][method][metric] for k in R if k.startswith(key)])
 
 
-EU = ['V1_01_easy', 'V2_01_easy', 'V2_02_medium']
+EU = ['V1_01_easy', 'V1_02_medium', 'V1_03_difficult', 'V2_01_easy', 'V2_02_medium']
 TU = ['TUM_room1', 'TUM_room2']
 eu_ours = np.mean([seqmean(s, 'ours') for s in EU]); eu_const = np.mean([seqmean(s, 'const') for s in EU])
 tu_ours = np.mean([seqmean(s, 'ours') for s in TU]); tu_const = np.mean([seqmean(s, 'const') for s in TU])
@@ -148,7 +148,7 @@ for i, (h, b) in enumerate(items):
 # ---------------- 4. architecture ----------------
 s = S[3]
 pic(s, FIG + 'architecture.png', 0.4, 1.05, w=9.2)
-text(s, 0.5, 4.45, 9.0, 0.8, [dict(t=[('One file, NumPy only, single thread. ', dict(bold=True)), ('Gyro increments composed by a segmented parallel prefix product; a 14-state linear-time-varying Kalman filter + RTS smoother at 10 Hz fuses world acceleration, drag velocity, rest constraints and a bounded-workspace prior.', {})], size=12.5, color=INK2)])
+text(s, 0.5, 4.45, 9.0, 0.8, [dict(t=[('One file, NumPy only, single thread. ', dict(bold=True)), ('Gyro increments composed by a segmented parallel prefix product; a 14-state linear-time-varying Kalman filter + RTS smoother at 2.5 Hz fuses world acceleration, drag velocity, rest constraints and a bounded-workspace prior.', {})], size=12.5, color=INK2)])
 
 # ---------------- 5. final output ----------------
 s = S[4]
@@ -164,7 +164,7 @@ text(s, x0, 1.5, 3.2, 1.3, [
 ])
 card(s, x0, 2.95, 1.5, 1.15); stat(s, x0 + 0.12, 3.0, 1.3, '%.1f MB' % M['memory']['peak_heap_mb_tracemalloc'], 'peak heap (budget 8)', bigsize=22)
 card(s, x0 + 1.65, 2.95, 1.5, 1.15); stat(s, x0 + 1.77, 3.0, 1.3, '%.1f ms' % M['runtime']['ms_per_1s_of_imu'], 'per 1 s of IMU (budget 20)', bigsize=22)
-text(s, x0, 4.35, 3.2, 0.9, [dict(t='EuRoC scores are leave-one-sequence-out; TUM-VI room2 never touched tuning.', size=11, color=INK2)])
+text(s, x0, 4.35, 3.2, 0.9, [dict(t='EuRoC: leave-one-sequence-out drag calibration. V1_02, V1_03, TUM room2 were blind tests (0.89 / 1.59 / 0.68 m first scores).', size=11, color=INK2)])
 
 # ---------------- 6. differentiation ----------------
 s = S[5]

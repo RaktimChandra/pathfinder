@@ -37,7 +37,14 @@ if __name__=='__main__':
         r={}
         for name,fn in [('naive',naive),('const',const)]:
             o='results/base_%s_%s.txt'%(name,b); fn(f,o); r[name]=score(gt,o,f)
-        o='results/%s.txt'%b; M.run(f,o); r['ours']=score(gt,o,f)
-        res[b]={k:{m:v[m] for m in ['ate_rmse','waypoint_rmse','blind5_rmse','dropout_rmse','rpe_trans_1s']} for k,v in r.items()}
+        o='results/%s.txt'%b
+        P={}
+        if not seq.startswith('TUM'):
+            # leave-one-sequence-out drag calibration: fit on the other EuRoC sequences only
+            from fit_drag import fit
+            others=sorted({os.path.basename(x)[:-8] for x in glob.glob('data/raw/*_imu.csv') if not os.path.basename(x).startswith('TUM')}-{seq})
+            if others: P['drag_k']=fit(others).tolist()
+        M.run(f,o,P); r['ours']=score(gt,o,f); r['ours']['drag_k_loo']=P.get('drag_k')
+        res[b]={k:{m:v.get(m) for m in ['ate_rmse','waypoint_rmse','blind5_rmse','dropout_rmse','rpe_trans_1s','const_baseline_rmse','drag_k_loo']} for k,v in r.items()}
         print('%-20s naive %10.1f m | const %.2f | ours %.2f'%(b,r['naive']['ate_rmse'],r['const']['ate_rmse'],r['ours']['ate_rmse']),flush=True)
     json.dump(res,open('results/baselines.json','w'),indent=1)
