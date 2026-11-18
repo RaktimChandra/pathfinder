@@ -128,24 +128,21 @@ def fig_drag(seq='V2_02_medium'):
     fig.tight_layout(); fig.savefig(OUT + '/drag.png', dpi=200); plt.close(fig)
 
 
-def fig_blind(name='V1_01_easy_H1', seq='V1_01_easy'):
-    gts, P, Q, V, *_ = load_gt('data/raw/%s_gt.csv' % seq)
-    st = M.run('data/deg/%s.csv' % name, '/tmp/fb.txt', return_state=True)
-    tsu, dead = st['tsu'], st['dead']
-    tf = tsu[np.flatnonzero(dead)[0]]
-    tg = (gts - tf) * 1e-9
-    sp = np.linalg.norm(V, axis=1)
+def fig_blind():
+    """Blind-window error vs velocity-decay time constant, over all 34 test files."""
+    d = json.load(open('results/blind_sweep.json')); r = json.load(open('results/baselines.json'))
+    taus = sorted(float(t) for t in d['tau']); yb = [d['tau'][('%g' % t) if ('%g' % t) in d['tau'] else str(t)]['mean_blind5'] for t in taus]
+    cb = np.mean([v['const']['blind5_rmse'] for v in r.values()])
     fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    m = (tg > -6) & (tg < 5.2)
-    ax.plot(tg[m], sp[m], color=INK, label='true speed (GT)')
-    v0 = sp[np.searchsorted(tg, 0)]
-    tt = np.linspace(0, 5, 50)
-    ax.plot(tt, v0 * np.exp(-tt / M.P_DEFAULT['blind_tau']), color=OURS, label='decay model (ours)')
-    ax.plot(tt, np.full_like(tt, v0), color=CONST, ls='--', label='constant velocity')
-    ax.axvspan(0, 5, color=PANEL, zorder=0); ax.text(0.15, ax.get_ylim()[1] * 0.92 if ax.get_ylim()[1] > 0 else 0.5, 'IMU dead', color=INK2, fontsize=9)
-    ax.set_xlabel('time from IMU failure [s]'); ax.set_ylabel('speed [m/s]')
-    ax.set_title('Blind window: the vehicle settles, it does not cruise')
-    ax.legend(loc='upper right', fontsize=9)
+    ax.plot(taus, yb, 'o-', color=OURS, label='Path Finder, decay time τ')
+    ax.axhline(cb, color=CONST, ls='--', lw=1.6, label='constant-position baseline')
+    ax.plot([0.2], [d['final']['mean_blind5']], 'o', ms=10, mfc='none', mec=INK, mew=1.8)
+    ax.annotate('shipped: τ = 0.2 s + lower gap noise\n(same pick in 17 / 17 LOO folds)', xy=(0.21, d['final']['mean_blind5']), xytext=(0.42, 1.585),
+                fontsize=9, color=INK2, arrowprops=dict(arrowstyle='->', color=INK2, lw=0.9))
+    ax.set_xscale('log'); ax.set_xticks([0.1, 0.2, 0.5, 1, 1.5, 3]); ax.set_xticklabels(['0.1', '0.2', '0.5', '1', '1.5', '3'])
+    ax.set_xlabel('velocity decay time constant after failure, τ [s]'); ax.set_ylabel('blind-window RMSE [m], mean of 34 files')
+    ax.set_title('Blind window: do not trust the last velocity')
+    ax.set_ylim(1.55, 2.26); ax.legend(loc='upper left', bbox_to_anchor=(0.01, 0.86), fontsize=9)
     fig.tight_layout(); fig.savefig(OUT + '/blind.png', dpi=200); plt.close(fig)
 
 
@@ -162,7 +159,7 @@ def fig_arch():
     box(2.75, 2.25, 2.3, 1.65, '3  Platform & rest', 'gravity fingerprint\ntake-off detection\nfull gyro bias at rest')
     box(2.75, 0.3, 2.3, 1.65, '4  Attitude', 'segmented prefix-product\ngyro integration +\ngravity feedback per block')
     box(5.5, 0.3, 3.45, 3.6, '5  Translation smoother', 'linear-time-varying\nKalman filter + RTS\n\nstate: p · v · accel offset\n        workspace centre · drag offset\n\nobservations:\n • world acceleration (2.5 Hz)\n • rotor-drag body velocity\n • zero-velocity at rest\n • bounded-workspace prior\n\nprocess noise follows the\ndegradation severity')
-    box(9.4, 2.25, 2.4, 1.65, '6  Blind window', 'IMU dead → velocity\ndecays (landing model)\nuncertainty grows')
+    box(9.4, 2.25, 2.4, 1.65, '6  Blind window', 'IMU dead → hold position\n(last velocity unreliable)\nuncertainty grows')
     box(9.4, 0.3, 2.4, 1.65, '7  Output', 'one pose per input row\nHermite p · nlerp q\nTUM format')
     arrow(1.25, 2.25, 1.25, 1.95); arrow(2.3, 1.1, 2.75, 1.1); arrow(2.3, 3.07, 2.75, 3.07); arrow(3.9, 2.25, 3.9, 1.95)
     arrow(5.05, 1.1, 5.5, 1.1); arrow(5.05, 3.07, 5.5, 3.07); arrow(8.95, 3.07, 9.4, 3.07); arrow(8.95, 1.1, 9.4, 1.1)

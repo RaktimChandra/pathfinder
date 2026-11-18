@@ -3,7 +3,7 @@ import sys,os,glob,json,numpy as np
 from multiprocessing import Pool
 sys.path.insert(0,'src'); sys.path.insert(0,'tools')
 ABL={'final':{}, 'no rotor-drag velocity':{'rdrag':1e6}, 'no degradation-aware noise':{'qa_exc':0.0,'qb_sev':0.0,'qb_exc':0.0},
-     'no robust drag weighting':{'drag_c2':1e12}, 'no rest-period bias / ZUPT':{'use_static_bias':False,'static_gyro_std':-1.0}, 'constant-velocity blind window':{'blind_tau':1e6}}
+     'no robust drag weighting':{'drag_c2':1e12}, 'no rest-period bias / ZUPT':{'use_static_bias':False,'static_gyro_std':-1.0}, 'constant-velocity blind window':{'blind_tau':1e6}, 'slow blind decay (tau 1.5 s, previous)':{'blind_tau':1.5,'blind_qa':1.0}}
 def job(a):
     name,P,f=a
     import main as M; from score import score; from fit_drag import fit

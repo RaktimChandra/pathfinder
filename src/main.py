@@ -56,12 +56,14 @@ P_DEFAULT = dict(
     room_h=3.0, room_v=1.0,
     rdrag=0.10,                      # drag observation noise (body accel, m/s^2, at block rate)
     drag_c2=4.0,                     # robust (Cauchy) weight threshold on drag-innovation NIS (2-sigma)
-    blind_qa=1.0,       # accel process noise while IMU is dead
+    blind_qa=0.3,       # accel process noise across dropouts and while the IMU is dead
     kp=0.02, ki=0.002, lp=1.0, att_block=0.1,
     static_gyro_std=0.06, static_acc_std=1.05,
     zupt_anywhere=True,  # zero-velocity updates at every detected rest period, not only the initial one
     zupt_sigma=0.02,    # zero-velocity pseudo-measurement noise [m/s]
-    blind_tau=1.5,      # velocity decay time-constant after IMU failure [s]
+    blind_tau=0.2,      # velocity decay after IMU failure [s]: the velocity estimate at failure is the
+                        # least reliable of the flight (max degradation), so it is not extrapolated.
+                        # Chosen by leave-one-sequence-out CV over 17 sequences (same pick in all folds).
     use_static_bias=True,
     sev_floor=0.02, sev_gamma=1.7,   # official degrade_imu.py ramp
     qa_exc=6.0, qb_sev=0.15, qb_exc=0.3,

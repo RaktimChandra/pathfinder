@@ -142,7 +142,7 @@ text(s, 0.5, 1.05, 9.0, 0.45, [dict(t='Turn it into a smoothing problem, and fee
 items = [
     ('Rotor drag measures velocity', 'A multirotor’s accelerometer feels drag ∝ body velocity (k ≈ −0.2 s⁻¹). Robust-weighted: it switches itself off when the drone is carried or parked.'),
     ('The vehicle starts at rest', 'Take-off detected from the IMU: full gyro bias, incl. the unobservable heading axis. Zero-velocity anchors at every rest.'),
-    ('The blind window is a landing', 'At failure the vehicle is still moving and settles within ~3 s: velocity decays, it does not cruise.'),
+    ('Do not trust the last velocity', 'Degradation peaks just before the IMU dies, so the velocity there is the least reliable of the flight. Hold position (τ = 0.2 s, chosen in 17/17 CV folds).'),
     ('Degradation has a schedule', 'Process noise follows the official ramp and the measured gyro noise excess: late, dirty samples count less.'),
 ]
 for i, (h, b) in enumerate(items):
@@ -180,7 +180,7 @@ x0 = 6.7
 card(s, x0, 1.1, 2.9, 1.15); stat(s, x0 + 0.15, 1.15, 2.6, '%s–%s' % (km(naive_min), km(naive_max)), 'textbook strapdown (same inputs)', color=VIOLET, bigsize=22)
 card(s, x0, 2.4, 2.9, 1.15); stat(s, x0 + 0.15, 2.45, 2.6, '%.2f · %.2f · %.2f' % (eu_const, mh_const, tu_const), 'constant position [m]: rooms · hall · TUM', color=AMBER, bigsize=19)
 card(s, x0, 3.7, 2.9, 1.15); stat(s, x0 + 0.15, 3.75, 2.6, '%.2f · %.2f · %.2f' % (eu_ours, mh_ours, tu_ours), 'Path Finder [m]: rooms · hall · TUM', bigsize=19)
-text(s, 0.5, 3.9, 5.9, 0.9, [dict(t='Never worse than doing nothing on any test file, and bounded by construction — even when the gyro columns receive accelerometer-level corruption.', size=12, color=INK2)])
+text(s, 0.5, 3.9, 5.9, 0.9, [dict(t='Beats doing nothing on all 34 test files and 36 / 36 extra stress files (other seeds, ramps, 100 Hz). Nested cross-validation: post-hoc tuning inflates scores by < 1%. Bit-identical on a Windows laptop.', size=12, color=INK2)])
 
 # ---------------- 7. demo & setup ----------------
 s = S[6]
@@ -204,6 +204,7 @@ text(s, 6.0, 2.45, 3.4, 2.6, [
     dict(t='evo ATE with SE(3) Umeyama, RPE, tier views', size=11.5, color=INK2, after=3),
     dict(t='naive + constant baselines', size=11.5, color=INK2, after=3),
     dict(t='leave-one-out drag calibration', size=11.5, color=INK2, after=3),
+    dict(t='nested LOO cross-validation, stress tests', size=11.5, color=INK2, after=3),
     dict(t='tracemalloc heap + CPU-time budget checks', size=11.5, color=INK2, after=3),
 ])
 
@@ -215,7 +216,7 @@ for x in list(s.shapes):
 pic(s, FIG + 'drag.png', 0.35, 1.0, w=4.6)
 pic(s, FIG + 'blind.png', 5.05, 1.0, w=4.6)
 text(s, 0.5, 3.85, 4.4, 1.4, [dict(t='Physics, measured: the perpendicular accelerometer tracks body velocity with a slope stable across sequences — a free velocity sensor on every multirotor.', size=12, color=INK2)])
-text(s, 5.2, 3.85, 4.4, 1.4, [dict(t='Mission-aware: the IMU dies while the vehicle is still moving; it settles within ~3 s. Decay beats constant-velocity extrapolation into the target.', size=12, color=INK2)])
+text(s, 5.2, 3.85, 4.4, 1.4, [dict(t='Blind window, measured: error falls steadily as the decay gets faster. Holding position beats extrapolating, and averaged over 34 files beats the constant baseline (1.64 vs 2.18 m).', size=12, color=INK2)])
 
 # ---------------- 9. thank you ----------------
 s = S[8]

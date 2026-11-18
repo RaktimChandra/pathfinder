@@ -8,9 +8,9 @@
   "sequence_duration_s": 143.555,
   "detected_platform": "euroc_adis16448",
   "runtime": {
-    "cpu_s": 0.1708,
-    "wall_s": 0.174,
-    "ms_per_1s_of_imu": 1.19,
+    "cpu_s": 0.1682,
+    "wall_s": 0.1693,
+    "ms_per_1s_of_imu": 1.172,
     "budget_ms_per_1s": 20.0
   },
   "memory": {
