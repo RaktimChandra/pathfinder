@@ -12,39 +12,55 @@ Each sequence was scored with **evo** using the organisers' protocol: SE(3) Umey
 
 | Sequence | Naive strapdown | Constant position | **Path Finder** |
 |---|---:|---:|---:|
-| EuRoC V1_01 | 1.4 km | 1.85 m | **1.39 m** |
-| EuRoC V1_02 † | 349 m | 1.78 m | **0.81 m** |
-| EuRoC V1_03 † | 530 m | 1.58 m | **1.35 m** |
-| EuRoC V2_01 | 830 m | 2.30 m | **2.07 m** |
+| EuRoC V1_01 | 1.4 km | 1.85 m | **1.36 m** |
+| EuRoC V1_02 † | 349 m | 1.78 m | **0.80 m** |
+| EuRoC V1_03 † | 530 m | 1.58 m | **1.44 m** |
+| EuRoC V2_01 | 830 m | 2.30 m | **2.03 m** |
 | EuRoC V2_02 | 507 m | 2.11 m | **1.40 m** |
+| EuRoC MH_01 ‡ | 50.4 km | 4.33 m | **3.90 m** |
+| EuRoC MH_02 ‡ | 34.4 km | 4.66 m | **4.31 m** |
+| EuRoC MH_03 ‡ | 31.5 km | 3.58 m | **2.34 m** |
+| EuRoC MH_04 ‡ | 17.8 km | 6.80 m | **4.54 m** |
+| EuRoC MH_05 ‡ | 1.6 km | 6.87 m | **4.83 m** |
 | TUM-VI room1 | 12.5 km | 1.00 m | **0.46 m** |
 | TUM-VI room2 † | 12.1 km | 1.22 m | **0.52 m** |
+| TUM-VI room3 † | 17.3 km | 1.25 m | **0.49 m** |
 
-Every EuRoC number above is **leave-one-sequence-out**: the drag calibration used to score a sequence was fitted only on the other sequences (see `tools/fit_drag.py`).
+Each number is the mean of the two degradation readings (H1, H2). Every EuRoC number is **leave-one-sequence-out**: the drag calibration used to score a sequence was fitted only on the other sequences (see `tools/fit_drag.py`).
 
-† Blind-test sequences. Every design and tuning decision was made without them, except the last one: the global smoother step size (0.1 s → 0.4 s), which was chosen on all sequences. Their blind scores, measured before that step, were V1_02 **0.89 m**, V1_03 **1.59 m** and TUM-VI room2 **0.68 m** (constant baselines: 1.78, 1.58 and 1.22 m).
+† Blind tests for the original design. Their first scores were V1_02 **0.89 m**, V1_03 **1.59 m**, TUM-VI room2 **0.68 m** and room3 **0.48 m** (constant baselines: 1.78, 1.58, 1.22 and 1.25 m). The global smoother step (0.1 s → 0.4 s) was later chosen on all sequences.
 
-All 14 test files (7 sequences × 2 degradation readings) beat the constant baseline.
+‡ **Machine Hall: a blind test that failed, and what we changed.** The Machine Hall is a ~20 m industrial hall, more than twice the size of the rooms we developed in. We ran the frozen estimator on all five sequences before changing anything. It beat the constant baseline on MH_03–05, but was **2.5–3× worse on MH_01 and MH_02** (10.8 m and 14.2 m against 4.3 m and 4.7 m). The cause was physical. Those two flights begin with the drone carried by hand and then left on the floor with its rotors off. The rotor-drag model, which says sideways body acceleration is proportional to airspeed, does not hold when nothing is flying, so it reported several m/s of velocity that did not exist. We made three changes:
 
-| Tier view (mean) | EuRoC: ours / constant | TUM-VI: ours / constant |
-|---|---:|---:|
-| ATE (whole trajectory) | **1.41** / 1.92 m | **0.49** / 1.11 m |
-| Waypoints (every 10 s) | **1.40** / 1.92 m | **0.52** / 1.15 m |
-| Blind 5 s window | **1.90** / 1.94 m | **0.73** / 0.68 m |
-| 2 s after each dropout | **1.40** / 1.95 m | **0.65** / 1.11 m |
+1. **Robust drag weighting:** a Cauchy weight on the drag innovation. When the normalised innovation squared exceeds 4 (2σ), its noise is inflated in proportion. This is a standard robust-estimation rule with a conventional threshold, and it changes the Vicon results by at most ±0.03 m.
+2. **Rest detection over the whole sequence:** zero-velocity updates at every rest period of at least 1.5 s, not only the one at take-off.
+3. **Workspace prior:** σ = 3.0 → 3.5 m for the EuRoC platform only. This value minimises the worst-case ratio against the constant baseline over all ten EuRoC sequences.
 
-The one tier with no clear gain is the blind window: about 2% better than the constant baseline on EuRoC and 9% worse on TUM-VI. Once the IMU is dead, there is no information left to beat a well-placed constant.
+![Machine Hall blind test](docs/figures/mh_blind.png)
 
-**Ablation** (same protocol; `tools/ablation.py`):
+Change 3 was tuned with the Machine Hall in view, so the ‡ rows are development results, not blind results. The rotor-drag constant was **not** refitted. Fitted independently on the Machine Hall, it comes out as k = [−0.166, −0.215], against [−0.166, −0.201] from the Vicon rooms. That agreement is independent evidence that the drag model describes the vehicle and not the room.
 
-| Configuration | EuRoC ATE | EuRoC blind 5 s | TUM-VI ATE | TUM-VI blind 5 s |
-|---|---:|---:|---:|---:|
-| **final** | 1.41 m | 1.90 m | 0.49 m | 0.73 m |
-| without: rotor-drag velocity | 1.67 m | 1.90 m | 0.49 m | 0.73 m |
-| without: degradation-aware noise | 1.94 m | 3.27 m | 1.42 m | 2.64 m |
-| without: rest-period bias / ZUPT | 1.52 m | 1.86 m | 0.49 m | 0.73 m |
-| constant-velocity blind window | 1.41 m | 1.92 m | 0.49 m | 0.74 m |
+All **26 test files** (13 sequences × 2 degradation readings) beat the constant baseline.
 
+| Tier view (mean, ours / constant) | EuRoC Vicon rooms | EuRoC Machine Hall | TUM-VI rooms |
+|---|---:|---:|---:|
+| ATE (whole trajectory) | **1.41** / 1.92 m | **3.98** / 5.25 m | **0.49** / 1.16 m |
+| Waypoints (every 10 s) | **1.42** / 1.92 m | **4.06** / 5.45 m | **0.50** / 1.21 m |
+| Blind 5 s window | **1.92** / 1.94 m | **3.25** / 4.21 m | 0.72 / **0.68** m |
+| 2 s after each dropout | **1.43** / 1.95 m | **3.13** / 5.03 m | **0.61** / 1.14 m |
+
+The blind window is the hardest tier. Once the IMU is dead, the error is set almost entirely by the position error at the moment of failure, and that error comes from the slow component of position, which an IMU alone cannot observe. We tested three ideas for the blind window: a return-to-launch prior, faster velocity decay, and a home-position prior. None improved it consistently, so none ships.
+
+**Ablation** (same protocol; `tools/ablation.py`; mean ATE / blind-window RMSE):
+
+| Configuration | Vicon rooms | Machine Hall | TUM-VI |
+|---|---:|---:|---:|
+| **final** | **1.41** / 1.92 m | **3.98** / 3.25 m | **0.49** / 0.72 m |
+| without: rotor-drag velocity | 1.65 / 1.89 m | 5.13 / 4.20 m | 0.49 / 0.72 m |
+| without: degradation-aware noise | 2.69 / 4.95 m | 5.81 / 8.91 m | 1.62 / 3.41 m |
+| without: robust drag weighting | 1.40 / 1.91 m | 8.02 / 3.51 m | 0.49 / 0.72 m |
+| without: rest-period bias / ZUPT | 1.55 / 1.85 m | 4.24 / 3.23 m | 0.49 / 0.72 m |
+| constant-velocity blind window | 1.41 / 1.93 m | 3.99 / 3.48 m | 0.49 / 0.72 m |
 
 ![ATE per sequence](docs/figures/ate_bars.png)
 
@@ -52,11 +68,11 @@ The one tier with no clear gain is the blind window: about 2% better than the co
 
 | | Budget | Measured |
 |---|---:|---:|
-| Peak memory (heap, `tracemalloc`) | ≤ 8 MB | **3.0 MB** |
-| Compute per 1 s of IMU (single thread) | ≤ 20 ms | **1.2 ms** (≈ 8 ms even with `tracemalloc` running) |
+| Peak memory (heap, `tracemalloc`) | ≤ 8 MB | **3.0 MB** (4.4 MB counting NumPy's own import) |
+| Compute per 1 s of IMU (single thread) | ≤ 20 ms | **1.2–1.7 ms** (≈ 9–12 ms even with `tracemalloc` running) |
 | Threads · network · GPU | 1 · none · none | 1 · none · none |
 
-Memory grows by about 0.014 MB per second of input, so any sequence up to about 420 s stays under 8 MB. That covers every EuRoC and TUM-VI room sequence.
+Memory grows by about 0.014 MB per second of input. A 430 s file peaks at 6.9 MB (8.7 MB counting the NumPy import), so inputs up to about 400 s stay under 8 MB by either count. The longest EuRoC or TUM-VI room sequence is 182 s (MH_01, 3.2 MB).
 
 ## Run it
 
@@ -108,9 +124,9 @@ The design follows a few physical facts we measured before writing the estimator
 |---|---|
 | **Ingest** | Accepts EuRoC CSV, a folder or a zip. Detects whether gyro or accelerometer columns come first, from the header names, and checks that against physics: an accelerometer's magnitude stays steady near *g*. Detects m/s² vs *g*, rad/s vs deg/s, and integer-ns vs decimal timestamps. |
 | **Integrity triage** | Handles dead-sensor rows (all zeros), stuck samples, spikes (running median plus MAD gate), duplicate timestamps (compacted in place) and dropouts (gap-aware Δt). |
-| **Platform and rest** | Identifies the platform from the gravity direction in the sensor frame. Detects take-off and measures the gyro bias at rest. |
+| **Platform and rest** | Identifies the platform from the gravity direction in the sensor frame. Measures the gyro bias during the initial rest, and detects every later rest period (≥ 1.5 s of quiet gyro and accelerometer with \|a\| ≈ g) for zero-velocity updates. |
 | **Attitude** | Complementary filter. Gyro increments within each 0.1 s block are composed with a segmented parallel prefix product (vectorised), and gravity feedback runs once per block. Recognised multirotors use a body-frame gravity reference; anything else uses a world-frame reference, averaged over seconds, that is robust to aggressive handheld motion. |
-| **Translation smoother** | Linear-time-varying Kalman filter plus RTS smoother at 2.5 Hz (0.4 s blocks, which average out rotor vibration). 14 states: position, velocity, world-frame acceleration offset (accelerometer bias plus residual tilt), workspace centre, drag offset. Observations: block-averaged world acceleration, rotor-drag body velocity, zero velocity at rest, and a soft bounded-workspace prior. |
+| **Translation smoother** | Linear-time-varying Kalman filter plus RTS smoother at 2.5 Hz (0.4 s blocks, which average out rotor vibration). 14 states: position, velocity, world-frame acceleration offset (accelerometer bias plus residual tilt), workspace centre, drag offset. Observations: block-averaged world acceleration, rotor-drag body velocity (Cauchy-weighted, so it switches itself off when the vehicle is not flying), zero velocity at rest, and a soft bounded-workspace prior. |
 | **Blind window** | Velocity-decay dynamics after the failure. Orientation is held. |
 | **Output** | Cubic Hermite interpolation of position and normalised quaternion interpolation (nlerp) of orientation, evaluated at every input row and written in chunks. |
 
@@ -126,6 +142,7 @@ Everything in `tools/` reproduces the numbers above.
 | `score.py` | evo ATE (SE(3) Umeyama, no scale), RPE, rotation error, and three tier views: waypoints every 10 s, the blind window, and the 2 s after each dropout. |
 | `baselines.py` | Naive strapdown and constant-position references on the same inputs and scorer. |
 | `fit_drag.py` | Rotor-drag calibration, with leave-one-sequence-out folds. |
+| `blind_mh.py`, `oracle_gate.py` | The Machine Hall blind test of the frozen estimator, and the oracle experiment (ground-truth rest and flight masks) used to find the cause of the MH_01/MH_02 failure. |
 | `robustness.py` | Input-contract suite. 15 variants: no header, header without `#`, accelerometer-first columns with and without a header, CRLF line endings, zip, folder, unsorted rows, *g* units, deg/s, decimal timestamps, a 6 s file, no failure window, and a 10-minute file. Every variant must pass the output contract, and every variant scores the same ATE as the reference. |
 | `perf.py`, `make_metadata.py` | Peak heap (`tracemalloc`) and CPU time per second of IMU. |
 
@@ -134,7 +151,7 @@ Ground truth comes from EuRoC MAV (`state_groundtruth_estimate0`) and TUM-VI (mo
 ## Honest limitations
 
 - **IMU-only position has a floor.** The slow component of position is unobservable from an IMU alone. Our gains over the constant baseline come from physics (drag, rest, landing), from the degradation model, and from bounded-workspace priors.
-- **The bounded-workspace prior assumes indoor flight.** It matches EuRoC and TUM-VI. An open-field mission would need it switched off: set `room_h` / `room_v` to large values.
+- **The bounded-workspace prior assumes indoor flight.** It matches EuRoC (8 m rooms and a ~20 m hall) and TUM-VI. In the larger hall it is a weaker constraint, and our margin over the constant baseline on the two longest flights (MH_01, MH_02) is only 8–10%. An open-field mission would need it switched off: set `room_h` / `room_v` to large values.
 - **Heading drift is unobservable after take-off.** Bias random walk on the vertical gyro axis cannot be seen without a heading reference. The rest-period bias removes the static part of it.
 - **`degrade_imu.py` quirk:** in the H2 interpretation, the script auto-detects "accelerometer units" from the gyro columns. With fast handheld rotation, the gyro magnitude near 1 makes it treat the gyro as *g* units, which scales that corruption down about 10× on TUM-VI.
 
@@ -169,8 +186,6 @@ tools/                 evaluation harness, baselines, calibration, figures
 docs/figures/          figures used here and in the deck
 Dockerfile, requirements.txt
 estimated_trajectory.txt, metadata.json   submission outputs
-docs/demo.mp4          2:32 pipeline walkthrough
-deck/                  submission presentation (PPTX + PDF)
 ```
 
 ## References

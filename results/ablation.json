@@ -1,72 +1,122 @@
 {
  "final": {
   "EuRoC": {
-   "ate_rmse": 1.4050101772737078,
-   "waypoint_rmse": 1.4023314499106914,
-   "blind5_rmse": 1.9045025298329634,
-   "dropout_rmse": 1.3966676272447307
+   "ate_rmse": 1.4065600906738218,
+   "waypoint_rmse": 1.416167308965282,
+   "blind5_rmse": 1.9157720544495642,
+   "dropout_rmse": 1.4288841656048041
+  },
+  "MH": {
+   "ate_rmse": 3.984348154153055,
+   "waypoint_rmse": 4.05708535932576,
+   "blind5_rmse": 3.2457169779001815,
+   "dropout_rmse": 3.1288111187847933
   },
   "TUM-VI": {
-   "ate_rmse": 0.4911031236960685,
-   "waypoint_rmse": 0.5248517673660396,
-   "blind5_rmse": 0.7341883110922898,
-   "dropout_rmse": 0.6486158276522006
+   "ate_rmse": 0.48991990512208944,
+   "waypoint_rmse": 0.5013372461902186,
+   "blind5_rmse": 0.7190816733420995,
+   "dropout_rmse": 0.6067687629603603
   }
  },
  "no rotor-drag velocity": {
   "EuRoC": {
-   "ate_rmse": 1.66891400341535,
-   "waypoint_rmse": 1.614097834871463,
-   "blind5_rmse": 1.8965118465953332,
-   "dropout_rmse": 1.6566162041672832
+   "ate_rmse": 1.6500713004710856,
+   "waypoint_rmse": 1.5932756285257033,
+   "blind5_rmse": 1.8889888819620821,
+   "dropout_rmse": 1.6419851700131471
+  },
+  "MH": {
+   "ate_rmse": 5.132395338624564,
+   "waypoint_rmse": 5.291891711296047,
+   "blind5_rmse": 4.198163645697116,
+   "dropout_rmse": 4.803373750539665
   },
   "TUM-VI": {
-   "ate_rmse": 0.4911031236960685,
-   "waypoint_rmse": 0.5248517673660396,
-   "blind5_rmse": 0.7341883110922898,
-   "dropout_rmse": 0.6486158276522006
+   "ate_rmse": 0.48991990512208944,
+   "waypoint_rmse": 0.5013372461902186,
+   "blind5_rmse": 0.7190816733420995,
+   "dropout_rmse": 0.6067687629603603
   }
  },
  "no degradation-aware noise": {
   "EuRoC": {
-   "ate_rmse": 1.9449082782131384,
-   "waypoint_rmse": 1.8723865472283077,
-   "blind5_rmse": 3.269527250496188,
-   "dropout_rmse": 2.361082675434678
+   "ate_rmse": 2.687174801758395,
+   "waypoint_rmse": 2.60831379621062,
+   "blind5_rmse": 4.946390708045703,
+   "dropout_rmse": 3.6155990146555985
+  },
+  "MH": {
+   "ate_rmse": 5.81002456806142,
+   "waypoint_rmse": 5.730693354232907,
+   "blind5_rmse": 8.913083623095885,
+   "dropout_rmse": 6.844913321795282
   },
   "TUM-VI": {
-   "ate_rmse": 1.4222507093551664,
-   "waypoint_rmse": 1.3026498925551746,
-   "blind5_rmse": 2.6446804709416827,
-   "dropout_rmse": 2.0703238485667583
+   "ate_rmse": 1.6226216830307643,
+   "waypoint_rmse": 1.5818305065021907,
+   "blind5_rmse": 3.4052996704545375,
+   "dropout_rmse": 2.5189310047400375
+  }
+ },
+ "no robust drag weighting": {
+  "EuRoC": {
+   "ate_rmse": 1.3997823541239385,
+   "waypoint_rmse": 1.4061744218039987,
+   "blind5_rmse": 1.9130716627945756,
+   "dropout_rmse": 1.4161389024320932
+  },
+  "MH": {
+   "ate_rmse": 8.01576102656763,
+   "waypoint_rmse": 7.17139908884278,
+   "blind5_rmse": 3.5070539289116667,
+   "dropout_rmse": 4.0159622991492006
+  },
+  "TUM-VI": {
+   "ate_rmse": 0.48991990512208944,
+   "waypoint_rmse": 0.5013372461902186,
+   "blind5_rmse": 0.7190816733420995,
+   "dropout_rmse": 0.6067687629603603
   }
  },
  "no rest-period bias / ZUPT": {
   "EuRoC": {
-   "ate_rmse": 1.5238575743774363,
-   "waypoint_rmse": 1.370588343038845,
-   "blind5_rmse": 1.8636875314955315,
-   "dropout_rmse": 1.3299599280257484
+   "ate_rmse": 1.5484599334031184,
+   "waypoint_rmse": 1.3661036216445026,
+   "blind5_rmse": 1.8482277213638714,
+   "dropout_rmse": 1.3262565914319393
+  },
+  "MH": {
+   "ate_rmse": 4.239290452122006,
+   "waypoint_rmse": 4.404807482636977,
+   "blind5_rmse": 3.232116326020055,
+   "dropout_rmse": 3.148558469884357
   },
   "TUM-VI": {
-   "ate_rmse": 0.4911031236960685,
-   "waypoint_rmse": 0.5248517673660396,
-   "blind5_rmse": 0.7341883110922898,
-   "dropout_rmse": 0.6486158276522006
+   "ate_rmse": 0.48991990512208944,
+   "waypoint_rmse": 0.5013372461902186,
+   "blind5_rmse": 0.7190816733420995,
+   "dropout_rmse": 0.6067687629603603
   }
  },
  "constant-velocity blind window": {
   "EuRoC": {
-   "ate_rmse": 1.4062902928704744,
-   "waypoint_rmse": 1.403182643975088,
-   "blind5_rmse": 1.9204589610286245,
-   "dropout_rmse": 1.3974250376263115
+   "ate_rmse": 1.408090899680468,
+   "waypoint_rmse": 1.4173366823507247,
+   "blind5_rmse": 1.9334399883702822,
+   "dropout_rmse": 1.429975042993304
+  },
+  "MH": {
+   "ate_rmse": 3.992689836980636,
+   "waypoint_rmse": 4.057815083648802,
+   "blind5_rmse": 3.479336074550622,
+   "dropout_rmse": 3.1306320375838803
   },
   "TUM-VI": {
-   "ate_rmse": 0.49098565287405604,
-   "waypoint_rmse": 0.5256571202551497,
-   "blind5_rmse": 0.7379050098053384,
-   "dropout_rmse": 0.6459291622360253
+   "ate_rmse": 0.48989365405321017,
+   "waypoint_rmse": 0.5017539631400535,
+   "blind5_rmse": 0.7225889890381891,
+   "dropout_rmse": 0.6047965990162115
   }
  }
 }

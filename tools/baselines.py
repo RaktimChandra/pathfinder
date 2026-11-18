@@ -30,7 +30,7 @@ def const(f,out):
         for r in ts:
             e=rng.normal(0,1e-4,3); fo.write('%d.%09d %.6f %.6f %.6f 0 0 0 1\n'%(r//10**9,r%10**9,*e))
 if __name__=='__main__':
-    files=sys.argv[1:] or sorted(glob.glob('data/deg/*.csv'))+sorted(glob.glob('data/deg_hold/*.csv'))
+    files=sys.argv[1:] or sorted(glob.glob('data/deg/*.csv'))+sorted(glob.glob('data/deg_hold/*.csv'))+sorted(glob.glob('data/deg_mh/*.csv'))
     res={}
     for f in files:
         seq=os.path.basename(f).rsplit('_',1)[0]; gt='data/raw/%s_gt.csv'%seq; b=os.path.basename(f)[:-4]

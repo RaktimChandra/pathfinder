@@ -27,9 +27,11 @@ def seqmean(key, method, metric='ate_rmse'):
 
 
 EU = ['V1_01_easy', 'V1_02_medium', 'V1_03_difficult', 'V2_01_easy', 'V2_02_medium']
-TU = ['TUM_room1', 'TUM_room2']
+TU = ['TUM_room1', 'TUM_room2', 'TUM_room3']
+MH = ['MH_01_easy', 'MH_02_easy', 'MH_03_medium', 'MH_04_difficult', 'MH_05_difficult']
 eu_ours = np.mean([seqmean(s, 'ours') for s in EU]); eu_const = np.mean([seqmean(s, 'const') for s in EU])
 tu_ours = np.mean([seqmean(s, 'ours') for s in TU]); tu_const = np.mean([seqmean(s, 'const') for s in TU])
+mh_ours = np.mean([seqmean(s, 'ours') for s in MH]); mh_const = np.mean([seqmean(s, 'const') for s in MH])
 naive_min = min(R[k]['naive']['ate_rmse'] for k in R); naive_max = max(R[k]['naive']['ate_rmse'] for k in R)
 
 
@@ -109,14 +111,18 @@ pars[1].runs[0].text = 'SRM Institute of Science and Technology'
 for p_ in pars:
     for r_ in p_.runs: r_.font.size = Pt(18)
 sh(s, 'Text 10').width = Inches(4.9)
-text(s, 0.55, 3.45, 6.4, 0.9, [dict(t='Inertial-only 6-DoF trajectory estimation and blind dead-reckoning under progressive sensor degradation', size=15, color=CYAN)])
+text(s, 0.55, 3.45, 5.0, 1.2, [dict(t='Inertial-only 6-DoF trajectory estimation and blind dead-reckoning under progressive sensor degradation', size=15, color=CYAN)])
 mb = sh(s, 'Text Box 22')
 mb.left = Inches(6.3); mb.top = Inches(2.45); mb.width = Inches(2.3); mb.height = Inches(1.2)
 mtf = mb.text_frame
 mtf.paragraphs[0].runs[0].text = 'Members'
-for nm in ['Raktim Chandra (lead)', 'Nipun Dewangan', 'Pronov Mazumdar']:
+mb.width = Inches(3.0); mb.left = Inches(5.9); mb.height = Inches(1.9)
+for nm, br in [('Raktim Chandra (lead)', 'B.Tech CSE, Software Engineering'), ('Nipun Dewangan', 'B.Tech Artificial Intelligence'),
+               ('Pronov Mazumdar', 'B.Tech CSE, Big Data Analytics')]:
     p = mtf.add_paragraph(); r = p.add_run(); r.text = nm
-    r.font.size = Pt(13); r.font.color.rgb = INK2; r.font.name = FONT
+    r.font.size = Pt(13); r.font.color.rgb = INK; r.font.name = FONT
+    p = mtf.add_paragraph(); r = p.add_run(); r.text = br + ', 4th year'
+    r.font.size = Pt(11); r.font.color.rgb = INK2; r.font.name = FONT; p.space_after = Pt(4)
 
 # ---------------- 2. problem ----------------
 s = S[1]
@@ -134,8 +140,8 @@ pic(s, FIG + 'spectrum.png', 5.35, 1.05, w=4.25)
 s = S[2]
 text(s, 0.5, 1.05, 9.0, 0.45, [dict(t='Turn it into a smoothing problem, and feed it physics the IMU already contains', size=16, bold=True)])
 items = [
-    ('Rotor drag measures velocity', 'A multirotor’s accelerometer feels drag ∝ body velocity (k ≈ −0.2 s⁻¹). Drift-free velocity, no extra sensor.'),
-    ('The vehicle starts at rest', 'Take-off detected from the IMU: full gyro bias — incl. the unobservable heading axis — plus zero-velocity anchors.'),
+    ('Rotor drag measures velocity', 'A multirotor’s accelerometer feels drag ∝ body velocity (k ≈ −0.2 s⁻¹). Robust-weighted: it switches itself off when the drone is carried or parked.'),
+    ('The vehicle starts at rest', 'Take-off detected from the IMU: full gyro bias, incl. the unobservable heading axis. Zero-velocity anchors at every rest.'),
     ('The blind window is a landing', 'At failure the vehicle is still moving and settles within ~3 s: velocity decays, it does not cruise.'),
     ('Degradation has a schedule', 'Process noise follows the official ramp and the measured gyro noise excess: late, dirty samples count less.'),
 ]
@@ -148,12 +154,12 @@ for i, (h, b) in enumerate(items):
 # ---------------- 4. architecture ----------------
 s = S[3]
 pic(s, FIG + 'architecture.png', 0.4, 1.05, w=9.2)
-text(s, 0.5, 4.45, 9.0, 0.8, [dict(t=[('One file, NumPy only, single thread. ', dict(bold=True)), ('Gyro increments composed by a segmented parallel prefix product; a 14-state linear-time-varying Kalman filter + RTS smoother at 2.5 Hz fuses world acceleration, drag velocity, rest constraints and a bounded-workspace prior.', {})], size=12.5, color=INK2)])
+text(s, 0.5, 4.45, 9.0, 0.8, [dict(t=[('One file, NumPy only, single thread. ', dict(bold=True)), ('Gyro increments composed by a segmented parallel prefix product; a 14-state linear-time-varying Kalman filter + RTS smoother at 2.5 Hz fuses world acceleration, robust-weighted drag velocity, rest constraints and a bounded-workspace prior.', {})], size=12.5, color=INK2)])
 
 # ---------------- 5. final output ----------------
 s = S[4]
 set_text(sh(s, 'Text 2'), 'TRACK FINAL OUTPUT')
-pic(s, FIG + 'ate_bars.png', 0.35, 1.15, w=5.8)
+pic(s, FIG + 'ate_bars_wide.png', 0.3, 1.2, w=5.95)
 x0 = 6.35
 text(s, x0, 1.1, 3.2, 0.4, [dict(t='Submission contract', size=15, bold=True)])
 text(s, x0, 1.5, 3.2, 1.3, [
@@ -164,15 +170,16 @@ text(s, x0, 1.5, 3.2, 1.3, [
 ])
 card(s, x0, 2.95, 1.5, 1.15); stat(s, x0 + 0.12, 3.0, 1.3, '%.1f MB' % M['memory']['peak_heap_mb_tracemalloc'], 'peak heap (budget 8)', bigsize=22)
 card(s, x0 + 1.65, 2.95, 1.5, 1.15); stat(s, x0 + 1.77, 3.0, 1.3, '%.1f ms' % M['runtime']['ms_per_1s_of_imu'], 'per 1 s of IMU (budget 20)', bigsize=22)
-text(s, x0, 4.35, 3.2, 0.9, [dict(t='EuRoC: leave-one-sequence-out drag calibration. V1_02, V1_03, TUM room2 were blind tests (0.89 / 1.59 / 0.68 m first scores).', size=11, color=INK2)])
+text(s, x0, 4.2, 3.25, 1.2, [dict(t='Leave-one-sequence-out drag calibration. Blind tests: V1_02, V1_03, TUM room2/3, and the unseen 20 m Machine Hall, which exposed a failure on two flights; fixed by robust drag weighting.', size=10.5, color=INK2)])
+text(s, 0.35, 3.95, 5.9, 1.3, [dict(t=[('Machine Hall blind run: ', dict(bold=True, color=INK)), ('the frozen estimator lost to the baseline on MH_01/02 (10.9 / 14.2 m vs 4.3 / 4.7 m): hand-carried start, rotors off, drag model invalid. With a Cauchy weight on the drag innovation and rest detection anywhere: 3.9 / 4.3 m.', {})], size=11, color=INK2)])
 
 # ---------------- 6. differentiation ----------------
 s = S[5]
 pic(s, FIG + 'hero.png', 0.3, 1.05, w=6.3)
 x0 = 6.7
 card(s, x0, 1.1, 2.9, 1.15); stat(s, x0 + 0.15, 1.15, 2.6, '%s–%s' % (km(naive_min), km(naive_max)), 'textbook strapdown (same inputs)', color=VIOLET, bigsize=22)
-card(s, x0, 2.4, 2.9, 1.15); stat(s, x0 + 0.15, 2.45, 2.6, '%.2f / %.2f m' % (eu_const, tu_const), 'constant position, EuRoC / TUM-VI', color=AMBER, bigsize=22)
-card(s, x0, 3.7, 2.9, 1.15); stat(s, x0 + 0.15, 3.75, 2.6, '%.2f / %.2f m' % (eu_ours, tu_ours), 'Path Finder, EuRoC / TUM-VI', bigsize=22)
+card(s, x0, 2.4, 2.9, 1.15); stat(s, x0 + 0.15, 2.45, 2.6, '%.2f · %.2f · %.2f' % (eu_const, mh_const, tu_const), 'constant position [m]: rooms · hall · TUM', color=AMBER, bigsize=19)
+card(s, x0, 3.7, 2.9, 1.15); stat(s, x0 + 0.15, 3.75, 2.6, '%.2f · %.2f · %.2f' % (eu_ours, mh_ours, tu_ours), 'Path Finder [m]: rooms · hall · TUM', bigsize=19)
 text(s, 0.5, 3.9, 5.9, 0.9, [dict(t='Never worse than doing nothing on any test file, and bounded by construction — even when the gyro columns receive accelerometer-level corruption.', size=12, color=INK2)])
 
 # ---------------- 7. demo & setup ----------------

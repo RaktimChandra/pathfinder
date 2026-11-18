@@ -63,7 +63,9 @@ def fig_hero(name='V2_02_medium_H1', seq='V2_02_medium'):
 def fig_bars():
     r = json.load(open('results/baselines.json'))
     keys = [k for k in r if k.endswith('_H1')]
-    lab = [k.replace('_H1', '').replace('_easy', '').replace('_medium', '').replace('TUM_', 'TUM ').replace('_', ' ') for k in keys]
+    grp = lambda k: (0 if k.startswith('V') else 1 if k.startswith('MH') else 2, k)
+    keys = sorted(keys, key=grp)
+    lab = [k.replace('_H1', '').replace('_easy', '').replace('_medium', '').replace('_difficult', '').replace('TUM_', 'TUM-VI ').replace('_', ' ') for k in keys]
     o = [np.mean([r[k]['ours']['ate_rmse'], r[k.replace('_H1', '_H2')]['ours']['ate_rmse']]) for k in keys]
     c = [np.mean([r[k]['const']['ate_rmse'], r[k.replace('_H1', '_H2')]['const']['ate_rmse']]) for k in keys]
     nv = [np.mean([r[k]['naive']['ate_rmse'], r[k.replace('_H1', '_H2')]['naive']['ate_rmse']]) for k in keys]
@@ -79,7 +81,7 @@ def fig_bars():
                 va='center', fontsize=9.5, color=NAIVE)
     ax.set_yticks(y); ax.set_yticklabels(lab); ax.invert_yaxis()
     ax.set_xlim(0, max(c) * 1.75); ax.set_xlabel('ATE RMSE [m]  (mean of both degradation variants)')
-    ax.grid(axis='y', visible=False)
+    ax.grid(axis='y', visible=False); ax.set_axisbelow(True)
     ax.set_title('Absolute trajectory error per sequence')
     ax.legend(loc='lower center', bbox_to_anchor=(0.42, 1.0), ncol=2, fontsize=9.5)
     ax.set_title('Absolute trajectory error per sequence', pad=30)
@@ -167,6 +169,53 @@ def fig_arch():
     fig.savefig(OUT + '/architecture.png', dpi=200); plt.close(fig)
 
 
+def fig_bars_wide():
+    """Column version of the per-sequence ATE chart, for 16:9 slides and video."""
+    r = json.load(open('results/baselines.json'))
+    keys = sorted([k for k in r if k.endswith('_H1')], key=lambda k: (0 if k.startswith('V') else 1 if k.startswith('MH') else 2, k))
+    lab = [k.replace('_H1', '').replace('_easy', '').replace('_medium', '').replace('_difficult', '').replace('TUM_room', 'TUM r').replace('_', ' ') for k in keys]
+    m = lambda k, who: np.mean([r[k][who]['ate_rmse'], r[k.replace('_H1', '_H2')][who]['ate_rmse']])
+    o = [m(k, 'ours') for k in keys]; c = [m(k, 'const') for k in keys]
+    x = np.arange(len(keys)); h = 0.38
+    fig, ax = plt.subplots(figsize=(11, 4.4))
+    ax.bar(x - h / 2 - 0.02, c, h, color=CONST, label='Constant-position baseline')
+    ax.bar(x + h / 2 + 0.02, o, h, color=OURS, label='Path Finder')
+    for i in range(len(keys)):
+        ax.text(x[i] + h / 2 + 0.02, o[i] + 0.08, '%.2f' % o[i], ha='center', va='bottom', fontsize=8.5, color=INK)
+    for xx, t in [(2, 'EuRoC Vicon rooms'), (7, 'EuRoC Machine Hall'), (11, 'TUM-VI rooms')]:
+        ax.text(xx, max(c) * 1.13, t, ha='center', fontsize=10, color=INK2)
+    for xx in [4.5, 9.5]:
+        ax.axvline(xx, color=GRID, lw=1.0)
+    ax.set_xticks(x); ax.set_xticklabels(lab, fontsize=9.5); ax.set_xlim(-0.6, len(keys) - 0.4)
+    ax.set_ylim(0, max(c) * 1.22); ax.set_ylabel('ATE RMSE [m]'); ax.grid(axis='x', visible=False); ax.set_axisbelow(True)
+    ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.0), ncol=2, fontsize=9.5)
+    ax.set_title('Absolute trajectory error, mean of both degradation readings  ·  26 / 26 files beat the baseline', pad=28, fontsize=12)
+    fig.tight_layout(); fig.savefig(OUT + '/ate_bars_wide.png', dpi=200); plt.close(fig)
+
+
+def fig_mh_blind():
+    """Machine Hall blind test: frozen estimator vs after the robust-drag fix."""
+    fr = json.load(open('results/blind_mh.json')); r = json.load(open('results/baselines.json'))
+    seqs = ['MH_01_easy', 'MH_02_easy', 'MH_03_medium', 'MH_04_difficult', 'MH_05_difficult']
+    m = lambda d, s, who: np.mean([d[s + '_H1'][who]['ate_rmse'], d[s + '_H2'][who]['ate_rmse']])
+    a = [m(fr, s, 'ours') for s in seqs]; c = [m(r, s, 'const') for s in seqs]; f = [m(r, s, 'ours') for s in seqs]
+    x = np.arange(len(seqs)); h = 0.27
+    fig, ax = plt.subplots(figsize=(11, 4.4))
+    for off, v, col, lb in [(-h - 0.03, a, NAIVE, 'Frozen estimator, first blind run'), (0, c, CONST, 'Constant-position baseline'),
+                            (h + 0.03, f, OURS, 'After robust drag weighting + rest detection')]:
+        ax.bar(x + off, v, h, color=col, label=lb)
+        for i in range(len(seqs)):
+            ax.text(x[i] + off, v[i] + 0.15, '%.1f' % v[i], ha='center', va='bottom', fontsize=9, color=INK if col != CONST else INK2)
+    ax.set_xticks(x); ax.set_xticklabels([s.replace('_', ' ') for s in seqs]); ax.set_ylabel('ATE RMSE [m]')
+    ax.set_ylim(0, max(a) * 1.15); ax.grid(axis='x', visible=False); ax.set_axisbelow(True)
+    ax.legend(loc='upper right', fontsize=9.5)
+    for xi in (0, 1):
+        ax.annotate('hand-carried start, then parked\nwith rotors off: drag model invalid' if xi else '', xy=(xi - h - 0.03 + 0.16, a[xi] - 0.6),
+                    xytext=(1.55, 11.0), fontsize=10, color=INK2, arrowprops=dict(arrowstyle='->', color=INK2, lw=1.0))
+    ax.set_title('Blind test on an unseen 20 m hall: what failed, and the fix', pad=10)
+    fig.tight_layout(); fig.savefig(OUT + '/mh_blind.png', dpi=200); plt.close(fig)
+
+
 if __name__ == '__main__':
-    for f in [fig_arch, fig_hero, fig_bars, fig_spectrum, fig_drag, fig_blind]:
+    for f in (globals()[n] for n in sys.argv[1:]) if sys.argv[1:] else [fig_arch, fig_hero, fig_bars, fig_bars_wide, fig_mh_blind, fig_spectrum, fig_drag, fig_blind]:
         f(); print('ok', f.__name__)

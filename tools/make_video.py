@@ -98,7 +98,10 @@ def s01_title():
     d.text((104, 380), 'Path Finder', font=F('Bold', 150), fill=INK)
     d.text((110, 590), 'Inertial-only 6-DoF trajectory estimation under progressive sensor degradation', font=F('Regular', 38), fill=CYAN)
     d.text((110, 690), 'Team SRMIST_vortexxx  ·  SRM Institute of Science and Technology', font=F('Regular', 32), fill=INK2)
-    d.text((110, 740), 'Raktim Chandra  ·  Nipun Dewangan  ·  Pronov Mazumdar', font=F('Regular', 32), fill=INK2)
+    for i, (nm, br) in enumerate([('Raktim Chandra', 'B.Tech CSE, Software Engineering'), ('Nipun Dewangan', 'B.Tech Artificial Intelligence'),
+                                  ('Pronov Mazumdar', 'B.Tech CSE, Big Data Analytics')]):
+        d.text((110 + i * 580, 760), nm, font=F('SemiBold', 30), fill=INK)
+        d.text((110 + i * 580, 802), br, font=F('Regular', 24), fill=INK2)
     d.text((110, 960), 'Samsung PRISM XR Hackathon 2026', font=F('Medium', 28), fill=INK2)
     still('s01', im, 6)
 
@@ -196,7 +199,7 @@ def s10_terminal():
     total = sum(len(l) + 8 for l in lines)
     for k in range(a.n):
         im, d = frame('Run it', 'One file, NumPy only. Exactly one pose per input row, exact ns → s timestamps.')
-        d.rounded_rectangle((110, 160, W - 110, H - 200), 18, fill=(8, 12, 22), outline=EDGE, width=2)
+        d.rounded_rectangle((70, 160, W - 40, H - 200), 18, fill=(8, 12, 22), outline=EDGE, width=2)
         budget = int((k / FPS) * cps * (1 if k / FPS < 3 else 2.2))
         y = 200
         for l in lines:
@@ -204,7 +207,7 @@ def s10_terminal():
                 break
             show = l[:budget]; budget -= len(l) + 8
             col = CYAN if l.startswith('$') else (INK2 if l.startswith('#') else INK)
-            d.text((150, y), show, font=MONO, fill=col); y += 44
+            d.text((100, y), show, font=MONO, fill=col); y += 44
         a.push(im)
     a.close()
 
@@ -230,8 +233,8 @@ def s11_traj_anim():
 
 
 def s12_results():
-    im, d = frame('Results', 'EuRoC: leave-one-sequence-out drag calibration.  Three sequences were blind tests.')
-    paste_fig(im, 'docs/figures/ate_bars.png', (90, 140, 1180, H - 190))
+    im, d = frame('Results', 'EuRoC: leave-one-sequence-out drag calibration.  13 sequences, both degradation readings.')
+    paste_fig(im, 'docs/figures/ate_bars_wide.png', (90, 140, 1200, H - 190))
     x = 1260
     for i, (big, small, col) in enumerate([('%.1f MB' % MD['memory']['peak_heap_mb_tracemalloc'], 'peak heap  (budget 8 MB)', CYAN),
                                           ('%.1f ms' % MD['runtime']['ms_per_1s_of_imu'], 'per 1 s of IMU  (budget 20 ms)', CYAN),
@@ -259,12 +262,14 @@ if __name__ == '__main__':
     scenes = [
         ('s01', s01_title), ('s02', s02_problem), ('s03', s03_error_anim),
         ('s04', lambda: s_fig('s04', 'Insight 1 · where position lives', 'spectrum.png', 'Over 90% of a flight’s position energy is slower than 0.05 Hz.\nIntegration cannot reach it, so we smooth with physics and priors instead.', 10)),
-        ('s05', lambda: s_fig('s05', 'Insight 2 · rotor drag', 'drag.png', 'A multirotor’s accelerometer feels drag proportional to body velocity.\nA drift-free velocity observation, stable across sequences.', 12)),
+        ('s05', lambda: s_fig('s05', 'Insight 2 · rotor drag', 'drag.png', 'A multirotor’s accelerometer feels drag proportional to body velocity: a drift-free velocity\nobservation, robust-weighted so it switches itself off when the drone is carried or parked.', 12)),
         ('s06', lambda: (lambda im_d: (paste_fig(im_d[0], '/tmp/takeoff.png', (110, 140, W - 110, H - 190)), still('s06', im_d[0], 10)))(frame('Insight 3 · the vehicle starts at rest', 'Take-off is detected from the IMU alone. The rest period gives the full gyro bias,\nincluding the heading axis gravity can never observe.'))),
         ('s07', lambda: s_fig('s07', 'Insight 4 · the blind window', 'blind.png', 'When the IMU dies the vehicle is still moving, and settles within about 3 s.\nVelocity decays; it does not cruise into the target.', 11)),
         ('s08', lambda: (lambda im_d: (paste_fig(im_d[0], '/tmp/noise.png', (110, 140, W - 110, H - 190)), still('s08', im_d[0], 10)))(frame('Insight 5 · degradation has a schedule', 'Late, dirty samples automatically count less.'))),
         ('s09', lambda: s_fig('s09', 'Architecture', 'architecture.png', '14-state linear-time-varying Kalman filter + RTS smoother at 2.5 Hz.\nSegmented parallel prefix product for attitude. Chunked, memory-bounded.', 13)),
-        ('s10', s10_terminal), ('s11', s11_traj_anim), ('s12', s12_results), ('s14', s14_close)]
+        ('s10', s10_terminal), ('s11', s11_traj_anim), ('s12', s12_results),
+        ('s13', lambda: s_fig('s13', 'A blind test that failed', 'mh_blind.png', 'We ran the frozen estimator on an unseen 20 m hall. Two flights start hand-carried, rotors off.\nA Cauchy weight on the drag innovation and rest detection anywhere fixed it. The drag constant was not refitted.', 13)),
+        ('s14', s14_close)]
     for name, fn in scenes:
         if only and name not in only:
             continue

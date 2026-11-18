@@ -41,7 +41,7 @@ PLATFORMS = {
         "drag_axes": None,  # thrust-perpendicular basis computed from g_dir
         "drag_k": np.array([-0.1665, -0.2010]),  # fit on 5 EuRoC sequences; LOO folds within +-0.01 (fit_drag.py)
         "multirotor": True,
-        "params": {"grav_ref": "body"},
+        "params": {"grav_ref": "body", "room_h": 3.5},   # room_h: EuRoC flies 8 m rooms and a ~20 m hall; minimax ATE/const over all 10 sequences
     },
 }
 UNKNOWN_PLATFORM_PARAMS = {"grav_ref": "world", "kp_w": 0.05, "ki_w": 0.002, "tau_w": 2.0}
@@ -54,10 +54,12 @@ P_DEFAULT = dict(
     qd=0.0003,          # body drag-offset random walk
     v0=0.5, b0=0.6, d0=1.0,
     room_h=3.0, room_v=1.0,
-    rdrag=0.10,         # drag observation noise (body accel, m/s^2, at block rate)
+    rdrag=0.10,                      # drag observation noise (body accel, m/s^2, at block rate)
+    drag_c2=4.0,                     # robust (Cauchy) weight threshold on drag-innovation NIS (2-sigma)
     blind_qa=1.0,       # accel process noise while IMU is dead
     kp=0.02, ki=0.002, lp=1.0, att_block=0.1,
     static_gyro_std=0.06, static_acc_std=1.05,
+    zupt_anywhere=True,  # zero-velocity updates at every detected rest period, not only the initial one
     zupt_sigma=0.02,    # zero-velocity pseudo-measurement noise [m/s]
     blind_tau=1.5,      # velocity decay time-constant after IMU failure [s]
     use_static_bias=True,
@@ -332,6 +334,40 @@ def detect_static_start(t, W, A, valid, blk=0.25, max_t=30.0, P=None):
     return float(t_end), W[sel].astype(np.float64).mean(0)
 
 
+def detect_static_all(t, W, A, valid, dtb, nb, P, min_run=1.5):
+    """Rest periods anywhere in the sequence (e.g. landed mid-sequence), at smoother-block rate.
+    A block is static when gyro and accel are quiet, |a| ~ g and the gyro mean is steady; only runs
+    of >= min_run seconds count, shrunk by one block at each end. Degradation noise only makes
+    blocks look less static, and stuck/dropped samples are already excluded via `valid`."""
+    m = valid
+    k = np.minimum((t[m] // dtb).astype(np.int64), nb - 1)
+    c = np.bincount(k, minlength=nb).astype(float)
+    cs = np.maximum(c, 1)
+    def bstat(X):
+        mu = np.stack([np.bincount(k, X[:, j], nb) / cs for j in range(3)], 1)
+        var = sum(np.bincount(k, X[:, j].astype(np.float64) ** 2, nb) / cs - mu[:, j] ** 2 for j in range(3))
+        return mu, np.sqrt(np.maximum(var, 0))
+    Wm, Ws = bstat(W[m]); Am, As = bstat(A[m])
+    an = np.linalg.norm(Am, axis=1)
+    st = (c >= 0.5 * np.median(c[c > 0])) & (Ws < P["static_gyro_std"]) & (As < P["static_acc_std"]) & (np.abs(an - G) < 0.25)
+    dW = np.zeros(nb); dW[1:] = np.linalg.norm(Wm[1:] - Wm[:-1], axis=1)
+    st &= dW < 0.03
+    out = np.zeros(nb, bool)
+    nr = max(1, int(round(min_run / dtb)))
+    i = 0
+    while i < nb:
+        if st[i]:
+            j = i
+            while j < nb and st[j]:
+                j += 1
+            if j - i >= nr:
+                out[i + 1:j - 1] = True
+            i = j
+        else:
+            i += 1
+    return out
+
+
 # ======================================================================================
 # 4. Attitude (fused pass: also accumulates block-rate world acceleration / drag terms)
 # ======================================================================================
@@ -595,6 +631,7 @@ def translation(ub, fp, has, blind, qmid, dtb, Bp, K, P, vmeas=None, static=None
     Hr = np.zeros((3, nx)); Hr[:, 0:3] = np.eye(3); Hr[:, 9:12] = -np.eye(3)
     Rr = np.diag([P["room_h"] ** 2, P["room_h"] ** 2, P["room_v"] ** 2])
     Rd = np.eye(2) * P["rdrag"] ** 2
+    c2 = P["drag_c2"]
     xf = np.empty((nb, nx)); Pf = np.empty((nb, nx, nx), np.float32)
     meas = has & ~blind
     GG = Gm @ Gm.T / dtb
@@ -629,8 +666,14 @@ def translation(ub, fp, has, blind, qmid, dtb, Bp, K, P, vmeas=None, static=None
             Hd[:, 3:6] = (K[:, None] * Bp) @ Rb[i].T
             Hd[:, 12:14] = np.eye(2)
             S = Hd @ Pc @ Hd.T + Rd
+            inn = fp[i] - Hd @ x
+            # Cauchy-type robust weight: when the drag model is violated (vehicle on the ground,
+            # carried by hand, contact), the innovation is implausible and R is inflated by NIS/c2.
+            m2 = float(inn @ np.linalg.solve(S, inn))
+            if m2 > c2:
+                S = Hd @ Pc @ Hd.T + Rd * (m2 / c2)
             Kg = np.linalg.solve(S, Hd @ Pc).T
-            x = x + Kg @ (fp[i] - Hd @ x); Pc = Pc - Kg @ Hd @ Pc
+            x = x + Kg @ inn; Pc = Pc - Kg @ Hd @ Pc
         Pc = 0.5 * (Pc + Pc.T)
         xf[i] = x; Pf[i] = Pc
     xs = xf
@@ -764,8 +807,11 @@ def run(inp, out, P=None, return_state=False):
         return dict(qa_k=qa_k, qb_k=qb_k, t_static=t_static, b_static=b_static, t=t, tsu=tsu, W=W, A=A, valid=valid, dead=dead_tail, td=td, Qd=Qd, ub=ub, fp=fp,
                     has=has, qmid=qmid, blind=blind, dtb=dtb, Bp=Bp, K=K, platform=platform, up_b=up_b, P=P)
     qa_k, qb_k = noise_schedule(t, W, valid, dead_tail, nb, dtb, P)
+    st_any = detect_static_all(t, W, A, valid & ~dead_tail, dtb, nb, P) if P["zupt_anywhere"] else None
     del W, A, valid
     static = (np.arange(nb) + 1) * dtb <= t_static
+    if P["zupt_anywhere"]:
+        static |= st_any & ~blind
     tk, pk, vk = translation(ub, fp, has, blind, qmid, dtb, Bp, K, P, static=static, qa_k=qa_k, qb_k=qb_k)
     write_output(out, ts_rows, tsu[0], tk, pk, vk, td, Qd)
     return {"platform": platform, "rows": int(len(ts_rows)), "unique": int(len(tsu)),
