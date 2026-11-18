@@ -433,7 +433,13 @@ def attitude_vec(t, W, A, valid, dead_tail, b0, up_b, P, dtb, Bp, dec, CHS=4096)
         hold = dead_tail[s0 + 1:s0 + 1 + m]
         dt[:m][hold] = 0.0
         seg = np.searchsorted(bstart, np.arange(s0, s1), side="right") - 1
-        dq = _qexp_v(W[s0:s1].astype(np.float64) * dt[:, None])
+        # trapezoidal rate over each interval: across a dropout gap during fast rotation, holding
+        # the sample before the gap (zero-order hold) mis-integrates the whole gap
+        w0 = W[s0:s1].astype(np.float64)
+        w1 = W[s0 + 1:min(s1 + 1, n)].astype(np.float64)
+        wm = w0.copy(); wm[:len(w1)] += w1; wm[:len(w1)] *= 0.5
+        dq = _qexp_v(wm * dt[:, None])
+        del w0, w1, wm
         L = s1 - s0
         off = 1
         while off < L:

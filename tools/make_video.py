@@ -233,7 +233,7 @@ def s11_traj_anim():
 
 
 def s12_results():
-    im, d = frame('Results', 'EuRoC: leave-one-sequence-out drag calibration.  13 sequences, both degradation readings.')
+    im, d = frame('Results', 'EuRoC: leave-one-sequence-out drag calibration.  17 sequences, both degradation readings.')
     paste_fig(im, 'docs/figures/ate_bars_wide.png', (90, 140, 1200, H - 190))
     x = 1260
     for i, (big, small, col) in enumerate([('%.1f MB' % MD['memory']['peak_heap_mb_tracemalloc'], 'peak heap  (budget 8 MB)', CYAN),

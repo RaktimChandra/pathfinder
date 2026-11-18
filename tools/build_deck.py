@@ -26,8 +26,8 @@ def seqmean(key, method, metric='ate_rmse'):
     return np.mean([R[k][method][metric] for k in R if k.startswith(key)])
 
 
-EU = ['V1_01_easy', 'V1_02_medium', 'V1_03_difficult', 'V2_01_easy', 'V2_02_medium']
-TU = ['TUM_room1', 'TUM_room2', 'TUM_room3']
+EU = ['V1_01_easy', 'V1_02_medium', 'V1_03_difficult', 'V2_01_easy', 'V2_02_medium', 'V2_03_difficult']
+TU = ['TUM_room1', 'TUM_room2', 'TUM_room3', 'TUM_room4', 'TUM_room5', 'TUM_room6']
 MH = ['MH_01_easy', 'MH_02_easy', 'MH_03_medium', 'MH_04_difficult', 'MH_05_difficult']
 eu_ours = np.mean([seqmean(s, 'ours') for s in EU]); eu_const = np.mean([seqmean(s, 'const') for s in EU])
 tu_ours = np.mean([seqmean(s, 'ours') for s in TU]); tu_const = np.mean([seqmean(s, 'const') for s in TU])
@@ -170,7 +170,7 @@ text(s, x0, 1.5, 3.2, 1.3, [
 ])
 card(s, x0, 2.95, 1.5, 1.15); stat(s, x0 + 0.12, 3.0, 1.3, '%.1f MB' % M['memory']['peak_heap_mb_tracemalloc'], 'peak heap (budget 8)', bigsize=22)
 card(s, x0 + 1.65, 2.95, 1.5, 1.15); stat(s, x0 + 1.77, 3.0, 1.3, '%.1f ms' % M['runtime']['ms_per_1s_of_imu'], 'per 1 s of IMU (budget 20)', bigsize=22)
-text(s, x0, 4.2, 3.25, 1.2, [dict(t='Leave-one-sequence-out drag calibration. Blind tests: V1_02, V1_03, TUM room2/3, and the unseen 20 m Machine Hall, which exposed a failure on two flights; fixed by robust drag weighting.', size=10.5, color=INK2)])
+text(s, x0, 4.2, 3.25, 1.2, [dict(t='Leave-one-sequence-out drag calibration. Blind tests: V1_02, V1_03, V2_03, TUM rooms 2–6, and the unseen 20 m Machine Hall, which exposed a failure on two flights, fixed by robust drag weighting.', size=10.5, color=INK2)])
 text(s, 0.35, 3.95, 5.9, 1.3, [dict(t=[('Machine Hall blind run: ', dict(bold=True, color=INK)), ('the frozen estimator lost to the baseline on MH_01/02 (10.9 / 14.2 m vs 4.3 / 4.7 m): hand-carried start, rotors off, drag model invalid. With a Cauchy weight on the drag innovation and rest detection anywhere: 3.9 / 4.3 m.', {})], size=11, color=INK2)])
 
 # ---------------- 6. differentiation ----------------

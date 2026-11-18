@@ -177,19 +177,20 @@ def fig_bars_wide():
     m = lambda k, who: np.mean([r[k][who]['ate_rmse'], r[k.replace('_H1', '_H2')][who]['ate_rmse']])
     o = [m(k, 'ours') for k in keys]; c = [m(k, 'const') for k in keys]
     x = np.arange(len(keys)); h = 0.38
-    fig, ax = plt.subplots(figsize=(11, 4.4))
+    fig, ax = plt.subplots(figsize=(12, 4.4))
     ax.bar(x - h / 2 - 0.02, c, h, color=CONST, label='Constant-position baseline')
     ax.bar(x + h / 2 + 0.02, o, h, color=OURS, label='Path Finder')
     for i in range(len(keys)):
         ax.text(x[i] + h / 2 + 0.02, o[i] + 0.08, '%.2f' % o[i], ha='center', va='bottom', fontsize=8.5, color=INK)
-    for xx, t in [(2, 'EuRoC Vicon rooms'), (7, 'EuRoC Machine Hall'), (11, 'TUM-VI rooms')]:
+    nv = sum(k.startswith('V') for k in keys); nm = sum(k.startswith('MH') for k in keys)
+    for xx, t in [((nv - 1) / 2, 'EuRoC Vicon rooms'), (nv + (nm - 1) / 2, 'EuRoC Machine Hall'), ((nv + nm + len(keys) - 1) / 2, 'TUM-VI rooms')]:
         ax.text(xx, max(c) * 1.13, t, ha='center', fontsize=10, color=INK2)
-    for xx in [4.5, 9.5]:
+    for xx in [nv - 0.5, nv + nm - 0.5]:
         ax.axvline(xx, color=GRID, lw=1.0)
     ax.set_xticks(x); ax.set_xticklabels(lab, fontsize=9.5); ax.set_xlim(-0.6, len(keys) - 0.4)
     ax.set_ylim(0, max(c) * 1.22); ax.set_ylabel('ATE RMSE [m]'); ax.grid(axis='x', visible=False); ax.set_axisbelow(True)
     ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.0), ncol=2, fontsize=9.5)
-    ax.set_title('Absolute trajectory error, mean of both degradation readings  ·  26 / 26 files beat the baseline', pad=28, fontsize=12)
+    ax.set_title('Absolute trajectory error, mean of both degradation readings  ·  %d / %d files beat the baseline' % (sum(r[k]['ours']['ate_rmse'] < r[k]['const']['ate_rmse'] for k in r), len(r)) + '', pad=28, fontsize=12)
     fig.tight_layout(); fig.savefig(OUT + '/ate_bars_wide.png', dpi=200); plt.close(fig)
 
 
