@@ -4,7 +4,7 @@
 
 Path Finder reconstructs a 6-DoF trajectory from a single degraded IMU stream: rising noise, bias and scale drift, spikes, stuck samples, dropouts, and a sensor that dies five seconds before the end. It uses no camera, no GPS, no waypoints and no ground truth at run time. It is one Python file that needs only NumPy, runs single-threaded, and outputs exactly one pose per input row.
 
-**Technical report (3 pages):** [docs/Path_Finder_technical_report.pdf](docs/Path_Finder_technical_report.pdf) · **Demo video:** [docs/demo.mp4](docs/demo.mp4) · **Deck:** [deck/SRMIST_vortexxx.pdf](deck/SRMIST_vortexxx.pdf)
+**Submission package:** [submission/SRMIST_vortexxx.zip](submission/SRMIST_vortexxx.zip) · **AI disclosure:** [AI_DISCLOSURE.md](AI_DISCLOSURE.md) · **Technical report (3 pages):** [docs/Path_Finder_technical_report.pdf](docs/Path_Finder_technical_report.pdf) · **Demo video:** [docs/demo.mp4](docs/demo.mp4) · **Deck:** [deck/SRMIST_vortexxx.pdf](deck/SRMIST_vortexxx.pdf)
 
 ![Path Finder vs textbook strapdown integration](docs/figures/hero.png)
 
