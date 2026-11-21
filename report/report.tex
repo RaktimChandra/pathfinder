@@ -106,6 +106,9 @@ slow decay $\tau{=}1.5$ & 1.39/2.01 & 3.98/3.24 & 0.53/0.72\\\bottomrule
 \item \textbf{Input contract.} 15 format variants (zip, folder, accelerometer-first columns, units, unsorted rows, \dots) all pass with identical ATE.
 \end{itemize}
 
+\section{Relevance to XR}
+When a headset's or controller's cameras lose sight of the world (darkness, occlusion, motion blur), the IMU is left on its own. Each component here maps onto information an XR device already has. Degradation-aware noise becomes weighting the IMU by its health. Rest detection covers a user standing still or a controller set down. The workspace prior becomes the known play-area boundary. Holding position stops the scene drifting away from the user. On the handheld TUM-VI sequences, which move like a head or a hand, the method averages 0.54\,m against 1.08\,m for standing still, at 1.2--2.7\,ms of CPU per second of data. A live fallback would use the same model as a fixed-lag smoother. The optional \texttt{--sigma} output gives a per-pose $1\sigma$ position uncertainty, calibrated by leave-one-sequence-out cross-validation: 67\% of held-out errors fall inside $1\sigma$ and 84\% inside $2\sigma$, so large errors are more common than a Gaussian would predict.
+
 \section{Limitations}
 An IMU alone cannot observe slow position. In the blind window on handheld TUM-VI motion we remain slightly worse than standing still (0.73 vs 0.64\,m), and margins on MH\_01/02 are about 8--10\%. The workspace prior assumes indoor operation. The workspace prior, the robust threshold and the blind decay were chosen with all sequences in view; the nested cross-validation bounds the resulting optimism at under 1\%.
 

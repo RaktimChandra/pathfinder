@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Path Finder Results</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@600;700&family=Red+Hat+Text:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a lab poster for a technical jury
+   IDEA the evaluation sheet of a flight-test lab: every flight, its track, its error trace
+   PICTURE a rotatable 3D track (truth vs estimate) beside its error trace with the blind window shaded
+   COLOUR oxford blue band, ground white/night, ours #1499BA, constant #C47318, truth ink
+   TYPE Red Hat Display 700 + Red Hat Text
+   LAYOUT finding band with three figures; picker; 3D + error side by side (stacked on phone); league table */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#070f26);--ink:light-dark(#0b1f4b,#e8edf5);--mute:light-dark(#4a5a7a,#9fb0cc);--rule:light-dark(#dde3ee,#1c2a4d);--panel:light-dark(#f4f7fb,#0b1736);--ours:#1499BA;--const:#C47318;--truth:light-dark(#0b1f4b,#e8edf5);--band:#0b1f4b;--hot:#e0115f}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 "Red Hat Text",system-ui,sans-serif;overflow-x:clip}
+h1,h2{font-family:"Red Hat Display",system-ui,sans-serif;letter-spacing:-.02em;line-height:1.05;margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,4.2vw,48px)}
+h2{font-size:clamp(22px,2.6vw,30px)}
+a{color:inherit}
+.band{padding:clamp(24px,3.5vw,52px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+.top{background:var(--band);color:#fff}
+.top p{color:#c9d5ee;max-width:66ch;margin:.7em 0 0}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(14em,1fr));gap:12px;margin-top:22px}
+.fg{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:14px 16px}
+.fg b{display:block;font:700 clamp(26px,3vw,34px)/1.1 "Red Hat Display",sans-serif;white-space:nowrap}
+.fg b i{font-style:normal;color:#ffb27a;font-size:.6em;font-weight:600}
+.fg span{color:#c9d5ee;font-size:14px}
+.links{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px;font-size:15px}
+.links a{color:#fff;text-underline-offset:3px}
+.pick{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 18px}
+.pick button{font:500 14px "Red Hat Text",sans-serif;min-height:40px;padding:0 12px;border-radius:20px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);cursor:pointer}
+.pick button[aria-pressed=true]{background:var(--ours);border-color:var(--ours);color:#fff}
+.pick button:focus-visible,.ctl button:focus-visible{outline:3px solid var(--hot);outline-offset:2px}
+.pick .grp{width:100%;font-size:13px;color:var(--mute);margin-top:4px}
+.view{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px}
+.card{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:14px}
+.card h3{font:600 15px "Red Hat Text",sans-serif;margin:0 0 6px}
+.fig{position:relative;min-height:360px;flex:1 1 auto}
+.fig>svg,.fig>canvas{position:absolute;inset:0;width:100%;height:100%}
+#c3{cursor:grab;touch-action:none}
+.leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mute);margin-top:8px}
+.leg i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:6px;border-radius:2px}
+.ctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px}
+.ctl button{font:600 14px "Red Hat Text",sans-serif;min-height:44px;padding:0 16px;border-radius:8px;border:0;background:var(--ink);color:var(--bg);cursor:pointer}
+.ctl input{flex:1 1 160px;accent-color:var(--ours);height:44px}
+.ctl output{font-variant-numeric:tabular-nums;font-size:14px;color:var(--mute);white-space:nowrap}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;color:var(--mute);font-size:13px}
+td.num{font-variant-numeric:tabular-nums}
+.bar{position:relative;height:10px;background:color-mix(in srgb,var(--const) 25%,transparent);border-radius:5px;min-width:90px}
+.bar b{position:absolute;inset:0 auto 0 0;background:var(--ours);border-radius:5px}
+.note{font-size:14px;color:var(--mute);max-width:80ch}
+svg text{font:13px "Red Hat Text",sans-serif;fill:var(--mute);paint-order:stroke;stroke:var(--panel);stroke-width:4px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin-top:18px}
+@media(max-width:860px){.view,.two{grid-template-columns:minmax(0,1fr)}.fig{min-height:300px}}
+@media(max-width:600px){table{font-size:13px}th,td{padding:6px 4px}}
+@media(prefers-reduced-motion:reduce){#play{display:none}}
+</style></head><body>
+<header class="band top"><div class="wrap">
+<h1>All 34 degraded test files beat standing still</h1>
+<p>Path Finder rebuilds a 6-DoF trajectory from one degrading IMU that dies 5 s before the end. Each flight below was degraded with the organisers' script, estimated blind, and scored with evo after SE(3) alignment. Mean ATE, Path Finder against the constant-position reference:</p>
+<div class="figs">
+<div class="fg"><b>1.39 m <i>vs 1.95</i></b><span>EuRoC Vicon rooms, 6 sequences</span></div>
+<div class="fg"><b>3.95 m <i>vs 5.25</i></b><span>EuRoC Machine Hall (20 m), 5 sequences</span></div>
+<div class="fg"><b>0.54 m <i>vs 1.08</i></b><span>TUM-VI handheld rooms, 6 sequences</span></div>
+</div>
+<div class="links"><a href="https://github.com/RaktimChandra/pathfinder">Code on GitHub</a><a href="https://github.com/RaktimChandra/pathfinder/blob/main/docs/Path_Finder_technical_report.pdf">Technical report (PDF)</a><a href="https://github.com/RaktimChandra/pathfinder/blob/main/docs/demo.mp4">Demo video</a></div>
+</div></header>
+<main class="band"><div class="wrap">
+<h2>Inspect any flight</h2>
+<div class="pick" id="pick" role="group" aria-label="Sequence"></div>
+<div class="view">
+<section class="card"><h3 id="t3">Track in 3D (drag to rotate)</h3><div class="fig"><canvas id="c3" aria-label="3D trajectory"></canvas></div>
+<div class="leg"><span><i style="background:var(--truth)"></i>ground truth</span><span><i style="background:var(--ours)"></i>Path Finder (IMU only)</span><span><i style="background:var(--hot)"></i>IMU dead (last 5 s)</span></div>
+<div class="ctl"><button id="play" type="button">Play</button><input id="scrub" type="range" min="0" max="1000" value="1000" aria-label="Time"><output id="tout">0 s</output></div></section>
+<section class="card"><h3>Position error after alignment, with the estimator's own ±1σ</h3><div class="fig"><svg id="ce" role="img" aria-label="Error over time"></svg></div>
+<div class="leg"><span><i style="background:var(--ours)"></i>error |p̂ − p| [m]</span><span><i style="background:color-mix(in srgb,var(--ours) 30%,transparent);height:10px"></i>±1σ reported by --sigma</span><span><i style="background:var(--const)"></i>constant-position ATE</span></div>
+<div class="scroll" id="sc"></div></section>
+</div>
+<div class="two">
+<section><h2>Every sequence</h2><p class="note">Mean of both degradation readings (H1, H2). The bar is Path Finder's error as a share of the constant reference: shorter is better, and every bar stops before the end.</p><div class="scroll" id="all"></div></section>
+<section><h2>How to read this</h2>
+<p class="note"><b>The blind window.</b> The red tail is the last 5 s, when the IMU outputs only zeros. Path Finder holds position there, because the velocity estimate just before the failure is the least reliable of the flight.</p>
+<p class="note"><b>The ±1σ band</b> is the smoother's own uncertainty, from the optional <code>--sigma</code> output. It is calibrated by leave-one-sequence-out cross-validation, and 67% of held-out errors fall inside it. Large errors are more common than a Gaussian would predict: 84% fall inside 2σ, against an expected 95%.</p>
+<p class="note"><b>Not shown:</b> textbook strapdown integration of the same inputs ends about 350 m to 50 km away, so it is listed in the table instead of drawn.</p>
+<p class="note">Data: EuRoC MAV and TUM-VI public datasets, degraded with the organisers' <code>degrade_imu.py</code> (seed 42). H1 reading shown in the plots. Generated by <code>tools/export_viewer_data.py</code>.</p></section>
+</div>
+</div></main>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+{
+const D=JSON.parse(document.getElementById('data').textContent);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const order=Object.keys(D).sort((a,b)=>{const g=k=>k.startsWith('V')?0:k.startsWith('MH')?1:2;return g(a)-g(b)||a.localeCompare(b)});
+const nice=k=>k.replace('_easy','').replace('_medium','').replace('_difficult','').replace('TUM_room','TUM room ').replace('_',' ');
+const grpName=k=>k.startsWith('V')?'EuRoC Vicon rooms':k.startsWith('MH')?'EuRoC Machine Hall':'TUM-VI handheld rooms';
+let cur=order.find(k=>k.startsWith('V2_02'))||order[0],yaw=-0.6,pitch=1.05,frac=1,playing=null;
+const pick=document.getElementById('pick');
+let lastG='';pick.innerHTML=order.map(k=>{const g=grpName(k),h=g!==lastG?'<div class="grp">'+g+'</div>':'';lastG=g;return h+'<button type="button" data-k="'+k+'">'+nice(k)+'</button>'}).join('');
+const c3=document.getElementById('c3'),ce=document.getElementById('ce'),scrub=document.getElementById('scrub'),tout=document.getElementById('tout');
+const mean=(k,w,m)=>(D[k].scores.H1[w][m]+D[k].scores.H2[w][m])/2;
+function draw3(){const d=D[cur],W=c3.clientWidth,H=c3.clientHeight,dpr=devicePixelRatio||1;c3.width=W*dpr;c3.height=H*dpr;const x=c3.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,W,H);
+const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+const pr=p=>{const a=p[0]*cy-p[1]*sy,b=p[0]*sy+p[1]*cy;return[a,b*cp-p[2]*sp,b*sp+p[2]*cp]};
+const G=d.gt.map(pr),E=d.est.map(pr);let r=0;for(const p of G.concat(E))r=Math.max(r,Math.abs(p[0]),Math.abs(p[1]));
+const s=Math.min(W,H)/2/(r*1.08||1),ox=W/2,oy=H/2,P=p=>[ox+p[0]*s,oy-p[1]*s];
+const n=Math.max(2,Math.round(frac*d.t.length)),tf=d.t_fail;
+x.lineWidth=1;x.strokeStyle=css('--rule');const raw=r/3,e10=Math.pow(10,Math.floor(Math.log10(raw))),gr=[1,2,5,10].map(v=>v*e10).find(v=>v>=raw)||10*e10;
+for(let i=-Math.ceil(r/gr);i<=Math.ceil(r/gr);i++){for(const [a,b] of [[[i*gr,-r,0],[i*gr,r,0]],[[-r,i*gr,0],[r,i*gr,0]]]){const A=P(pr(a)),B=P(pr(b));x.beginPath();x.moveTo(...A);x.lineTo(...B);x.stroke()}}
+const line=(Q,col,w,from,to)=>{x.strokeStyle=col;x.lineWidth=w;x.lineJoin='round';x.beginPath();for(let i=from;i<to;i++){const q=P(Q[i]);i===from?x.moveTo(...q):x.lineTo(...q)}x.stroke()};
+line(G,css('--truth'),1.6,0,n);const fi=tf==null?n:Math.min(n,d.t.findIndex(t=>t>=tf));line(E,css('--ours'),2.4,0,Math.max(1,fi));if(fi<n)line(E,css('--hot'),2.8,Math.max(0,fi-1),n);
+const dot=(q,col)=>{const p=P(q);x.fillStyle=col;x.beginPath();x.arc(p[0],p[1],5,0,7);x.fill()};dot(G[n-1],css('--truth'));dot(E[n-1],css('--ours'));
+x.fillStyle=css('--mute');x.font='13px "Red Hat Text",sans-serif';x.fillText('grid '+gr+' m',10,H-10);
+tout.value=d.t[n-1].toFixed(0)+' s · error '+d.err[n-1].toFixed(2)+' m';}
+function drawE(){const d=D[cur],W=ce.clientWidth,H=ce.clientHeight,m={l:44,r:12,t:14,b:30},w=W-m.l-m.r,h=H-m.t-m.b;
+const T=d.t[d.t.length-1],ym=Math.max(...d.err.map((e,i)=>Math.max(e,d.sig[i])),mean(cur,'const','ate_rmse'))*1.1;
+const X=t=>m.l+t/T*w,Y=v=>m.t+h-v/ym*h;const step=W<520?Math.ceil(T/4/10)*10:Math.ceil(T/8/10)*10;
+let g='';for(let t=0;t<=T;t+=step)g+='<line x1="'+X(t)+'" x2="'+X(t)+'" y1="'+m.t+'" y2="'+(m.t+h)+'" stroke="var(--rule)"/><text x="'+X(t)+'" y="'+(H-8)+'" text-anchor="middle">'+t+(t===0?' s':'')+'</text>';
+const yt=ym>4?2:ym>2?1:ym>1?0.5:0.25;for(let v=0;v<=ym;v+=yt)g+='<line x1="'+m.l+'" x2="'+(m.l+w)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="var(--rule)"/><text x="'+(m.l-6)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+(+v.toFixed(2))+'</text>';
+if(d.t_fail!=null)g+='<rect x="'+X(d.t_fail)+'" y="'+m.t+'" width="'+(m.l+w-X(d.t_fail))+'" height="'+h+'" fill="var(--hot)" opacity=".12"/><text x="'+(X(d.t_fail)-6)+'" y="'+(m.t+14)+'" text-anchor="end">IMU dead</text>';
+const band=d.t.map((t,i)=>X(t)+','+Y(d.sig[i])).join(' ')+' '+X(T)+','+Y(0)+' '+X(0)+','+Y(0);
+g+='<polygon points="'+band+'" fill="var(--ours)" opacity=".18"/>';
+const cv=mean(cur,'const','ate_rmse');g+='<line x1="'+m.l+'" x2="'+(m.l+w)+'" y1="'+Y(cv)+'" y2="'+Y(cv)+'" stroke="var(--const)" stroke-width="2" stroke-dasharray="6 4"/><text x="'+(m.l+6)+'" y="'+(Y(cv)-6)+'">constant '+cv.toFixed(2)+' m</text>';
+g+='<polyline points="'+d.t.map((t,i)=>X(t)+','+Y(d.err[i])).join(' ')+'" fill="none" stroke="var(--ours)" stroke-width="2"/>';
+const n=Math.max(1,Math.round(frac*d.t.length))-1;g+='<line x1="'+X(d.t[n])+'" x2="'+X(d.t[n])+'" y1="'+m.t+'" y2="'+(m.t+h)+'" stroke="var(--ink)" stroke-width="1"/>';
+ce.innerHTML=g;}
+function table1(){const r=[['ATE','ate_rmse'],['Waypoints (10 s)','waypoint_rmse'],['Blind 5 s','blind5_rmse'],['After dropouts','dropout_rmse']];
+document.getElementById('sc').innerHTML='<table><thead><tr><th>'+nice(cur)+' (mean H1, H2)</th><th>Path Finder</th><th>Constant</th></tr></thead><tbody>'+r.map(([l,k])=>{const o=mean(cur,'ours',k),c=mean(cur,'const',k);return '<tr><td>'+l+'</td><td class="num"'+(o<c?' style="font-weight:600"':'')+'>'+o.toFixed(2)+' m</td><td class="num"'+(c<o?' style="font-weight:600"':'')+'>'+c.toFixed(2)+' m</td></tr>'}).join('')+'</tbody></table>';}
+function tableAll(){document.getElementById('all').innerHTML='<table><thead><tr><th>Sequence</th><th>Ours</th><th>Constant</th><th>Strapdown</th><th>Ours ÷ const.</th></tr></thead><tbody>'+order.map(k=>{const o=mean(k,'ours','ate_rmse'),c=mean(k,'const','ate_rmse'),nv=D[k].naive;return '<tr><td><a href="#'+k+'">'+nice(k)+'</a></td><td class="num">'+o.toFixed(2)+'</td><td class="num">'+c.toFixed(2)+'</td><td class="num">'+(nv>=1000?(nv/1000).toFixed(1)+' km':nv.toFixed(0)+' m')+'</td><td><div class="bar" title="'+(o/c*100).toFixed(0)+'%"><b style="width:'+(o/c*100).toFixed(1)+'%"></b></div></td></tr>'}).join('')+'</tbody></table>';}
+function sel(k){if(!D[k])return;cur=k;frac=1;scrub.value=1000;for(const b of pick.querySelectorAll('button'))b.setAttribute('aria-pressed',b.dataset.k===k);draw3();drawE();table1();}
+pick.addEventListener('click',e=>{const b=e.target.closest('button');if(b){stop();history.replaceState(null,'','#'+b.dataset.k);sel(b.dataset.k)}});
+scrub.addEventListener('input',()=>{stop();frac=scrub.value/1000;draw3();drawE()});
+function stop(){if(playing){cancelAnimationFrame(playing);playing=null;document.getElementById('play').textContent='Play'}}
+document.getElementById('play').addEventListener('click',()=>{if(playing){stop();return}if(frac>=1)frac=0;document.getElementById('play').textContent='Pause';let last=performance.now();const T=D[cur].t[D[cur].t.length-1];
+const f=now=>{frac=Math.min(1,frac+(now-last)/1000*(12/T));last=now;scrub.value=frac*1000;draw3();drawE();if(frac<1)playing=requestAnimationFrame(f);else stop()};playing=requestAnimationFrame(f)});
+let drag=null;c3.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY,yaw,pitch];c3.setPointerCapture(e.pointerId)});
+c3.addEventListener('pointermove',e=>{if(!drag)return;yaw=drag[2]+(e.clientX-drag[0])*0.01;pitch=Math.max(0,Math.min(1.5,drag[3]-(e.clientY-drag[1])*0.01));draw3()});
+c3.addEventListener('pointerup',()=>{drag=null});
+const ro=new ResizeObserver(()=>{draw3();drawE()});ro.observe(c3);ro.observe(ce);
+addEventListener('hashchange',()=>sel(location.hash.slice(1)));
+tableAll();sel(D[location.hash.slice(1)]?location.hash.slice(1):cur);
+}
+</script></body></html>

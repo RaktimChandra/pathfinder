@@ -3,11 +3,13 @@
 PATH FINDER - inertial-only 6-DoF trajectory estimation under progressive sensor
 degradation (Samsung PRISM XR Hackathon 2026, Track 03).
 
-    python main.py <imu_input> [estimated_trajectory.txt]
+    python main.py <imu_input> [estimated_trajectory.txt] [--sigma sigma.txt]
 
 <imu_input> is a EuRoC-format IMU CSV (imu0/data.csv), a folder containing
 imu0/data.csv, or a .zip of such a folder. Output: TUM format, exactly one pose
-per input row, timestamps converted ns -> s exactly.
+per input row, timestamps converted ns -> s exactly. Optional --sigma writes a
+sidecar with each row's calibrated 1-sigma position uncertainty (does not change
+the trajectory).
 
 Pipeline (numpy only, single thread, offline/batch):
   1. Parse + schema detection (gyro/accel column order and units from header or data)
@@ -59,6 +61,8 @@ P_DEFAULT = dict(
     blind_qa=0.3,       # accel process noise across dropouts and while the IMU is dead
     kp=0.02, ki=0.002, lp=1.0, att_block=0.1,
     static_gyro_std=0.06, static_acc_std=1.05,
+    sigma_scale=0.88,   # calibrates the optional --sigma output: 1-sigma holds 67% of held-out
+                        # errors (LOO over 17 sequences, results/sigma_calibration.json)
     zupt_anywhere=True,  # zero-velocity updates at every detected rest period, not only the initial one
     zupt_sigma=0.02,    # zero-velocity pseudo-measurement noise [m/s]
     blind_tau=0.2,      # velocity decay after IMU failure [s]: the velocity estimate at failure is the
@@ -602,7 +606,7 @@ def quat_to_R(Q):
 # ======================================================================================
 # 5. Translation smoother
 # ======================================================================================
-def translation(ub, fp, has, blind, qmid, dtb, Bp, K, P, vmeas=None, static=None, qa_k=None, qb_k=None):
+def translation(ub, fp, has, blind, qmid, dtb, Bp, K, P, vmeas=None, static=None, qa_k=None, qb_k=None, want_sigma=False):
     """LTV Kalman filter + RTS smoother on block-rate data.
     state: p(3) v(3) b_world(3) centre(3) d_drag(2)"""
     nb = len(ub)
@@ -685,6 +689,9 @@ def translation(ub, fp, has, blind, qmid, dtb, Bp, K, P, vmeas=None, static=None
         Pc = 0.5 * (Pc + Pc.T)
         xf[i] = x; Pf[i] = Pc
     xs = xf
+    if want_sigma:   # RTS smoothed covariance, position block only (optional output)
+        sig = np.empty((nb, 3)); Ps = Pf[nb - 1].astype(np.float64)
+        sig[nb - 1] = np.sqrt(np.maximum(np.diag(Ps)[0:3], 0))
     for i in range(nb - 2, -1, -1):
         Pfi = Pf[i].astype(np.float64)
         Fi = Fb if (blind[i] and not meas[i]) else F
@@ -692,8 +699,13 @@ def translation(ub, fp, has, blind, qmid, dtb, Bp, K, P, vmeas=None, static=None
         xpred = Fi @ xf[i] + (Gm @ ub[i] if meas[i] else 0.0)
         C = np.linalg.solve(Pp, Fi @ Pfi).T
         xs[i] = xf[i] + C @ (xs[i + 1] - xpred)
+        if want_sigma:
+            Ps = Pfi + C @ (Ps - Pp) @ C.T
+            sig[i] = np.sqrt(np.maximum(np.diag(Ps)[0:3], 0))
     del Pf
     tk = (np.arange(nb) + 0.5) * dtb
+    if want_sigma:
+        return tk, xs[:, 0:3].copy(), xs[:, 3:6].copy(), sig
     return tk, xs[:, 0:3].copy(), xs[:, 3:6].copy()
 
 
@@ -736,6 +748,19 @@ def write_output(path, ts_rows, t0_ns, tk, pk, vk, td, Qd, chunk=1024):
             sec = (tr // 1_000_000_000).tolist(); ns = (tr % 1_000_000_000).tolist()
             f.write("".join("%d.%09d %.6f %.6f %.6f %.8f %.8f %.8f %.8f\n" % (a, b, pp[0], pp[1], pp[2], qq[1], qq[2], qq[3], qq[0])
                             for a, b, pp, qq in zip(sec, ns, p.tolist(), q.tolist())))
+
+
+def write_sigma(path, ts_rows, t0_ns, tk, sig, scale, chunk=4096):
+    """Optional sidecar: per-row 1-sigma position uncertainty [m] (x, y, z), linearly
+    interpolated from the smoother's covariance and multiplied by a calibration factor."""
+    with open(path, "w") as f:
+        f.write("# timestamp sigma_x sigma_y sigma_z  (1-sigma position uncertainty, metres)\n")
+        for s in range(0, len(ts_rows), chunk):
+            tr = ts_rows[s:s + chunk]
+            tq = (tr - t0_ns).astype(np.float64) * 1e-9
+            sg = np.stack([np.interp(tq, tk, sig[:, j]) for j in range(3)], 1) * scale
+            sec = (tr // 1_000_000_000).tolist(); ns = (tr % 1_000_000_000).tolist()
+            f.write("".join("%d.%09d %.4f %.4f %.4f\n" % (a, b, g[0], g[1], g[2]) for a, b, g in zip(sec, ns, sg.tolist())))
 
 
 def noise_schedule(t, W, valid, dead_tail, nb, dtb, P):
@@ -783,7 +808,7 @@ def drag_basis(up_b):
     return np.stack([e1, e2])
 
 
-def run(inp, out, P=None, return_state=False):
+def run(inp, out, P=None, return_state=False, sigma_out=None):
     user_P = P or {}
     ts_rows, w, a = parse_imu(inp)
     t, tsu, valid, dead_tail, W, A = triage(ts_rows, w, a)
@@ -820,8 +845,11 @@ def run(inp, out, P=None, return_state=False):
     static = (np.arange(nb) + 1) * dtb <= t_static
     if P["zupt_anywhere"]:
         static |= st_any & ~blind
-    tk, pk, vk = translation(ub, fp, has, blind, qmid, dtb, Bp, K, P, static=static, qa_k=qa_k, qb_k=qb_k)
+    res = translation(ub, fp, has, blind, qmid, dtb, Bp, K, P, static=static, qa_k=qa_k, qb_k=qb_k, want_sigma=sigma_out is not None)
+    tk, pk, vk = res[:3]
     write_output(out, ts_rows, tsu[0], tk, pk, vk, td, Qd)
+    if sigma_out is not None:
+        write_sigma(sigma_out, ts_rows, tsu[0], tk, res[3], P["sigma_scale"])
     return {"platform": platform, "rows": int(len(ts_rows)), "unique": int(len(tsu)),
             "dead": int(dead_tail.sum()), "blocks": nb}
 
@@ -830,6 +858,10 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
-    out = sys.argv[2] if len(sys.argv) > 2 else "estimated_trajectory.txt"
-    info = run(sys.argv[1], out)
+    args = sys.argv[1:]
+    sigma_out = None
+    if "--sigma" in args:   # optional: also write per-row 1-sigma position uncertainty
+        k = args.index("--sigma"); sigma_out = args[k + 1]; del args[k:k + 2]
+    out = args[1] if len(args) > 1 else "estimated_trajectory.txt"
+    info = run(args[0], out, sigma_out=sigma_out)
     print("wrote %s  %s" % (out, info))

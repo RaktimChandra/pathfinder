@@ -2,6 +2,8 @@
 
 **Samsung PRISM XR Hackathon 2026 · Track 03 · Team SRMIST_vortexxx (SRM Institute of Science and Technology)**
 
+[![ci](https://github.com/RaktimChandra/pathfinder/actions/workflows/ci.yml/badge.svg)](https://github.com/RaktimChandra/pathfinder/actions/workflows/ci.yml) · **[Interactive results](https://raktimchandra.github.io/pathfinder/)** · [Release v1.0](https://github.com/RaktimChandra/pathfinder/releases/tag/v1.0.0) · MIT licence
+
 Path Finder reconstructs a 6-DoF trajectory from a single degraded IMU stream: rising noise, bias and scale drift, spikes, stuck samples, dropouts, and a sensor that dies five seconds before the end. It uses no camera, no GPS, no waypoints and no ground truth at run time. It is one Python file that needs only NumPy, runs single-threaded, and outputs exactly one pose per input row.
 
 ## Submission checklist
@@ -16,7 +18,10 @@ Everything the organisers asked for is in this repository:
 | Video | [`docs/demo.mp4`](docs/demo.mp4), 2 min 45 s, captioned, no voice-over |
 | AI disclosure | [`AI_DISCLOSURE.md`](AI_DISCLOSURE.md) |
 | README | this file |
+| Interactive results page (additional) | [`docs/index.html`](docs/index.html), published at https://raktimchandra.github.io/pathfinder/: every flight's 3D track, error trace, ±1σ band and blind window |
+| Uncertainty output (additional) | `python src/main.py <imu> out.txt --sigma sigma.txt`: calibrated ±1σ per pose ([details](#run-it)) |
 | Technical report (additional) | [`docs/Path_Finder_technical_report.pdf`](docs/Path_Finder_technical_report.pdf), 3 pages ([LaTeX source](report/report.tex)) |
+| Tests and CI (additional) | [`tests/test_contract.py`](tests/test_contract.py), run by GitHub Actions on every push: one pose per row, exact timestamps, unit quaternions, column-order detection, duplicates, the `--sigma` sidecar and the runtime budget |
 | APK / SDK | not applicable: the deliverable is a Python script (a [`Dockerfile`](Dockerfile) is included) |
 
 ## Team SRMIST_vortexxx
@@ -91,6 +96,22 @@ All **34 test files** (17 sequences × 2 degradation readings) beat the constant
 | previous slow blind decay (τ = 1.5 s) | 1.39 / 2.01 m | 3.98 / 3.24 m | 0.53 / 0.72 m |
 | constant-velocity blind window | 1.39 / 2.02 m | 3.98 / 3.26 m | 0.53 / 0.73 m |
 
+## Why this matters for XR
+
+Headsets and controllers track with cameras and an IMU together. When the cameras lose sight of the world (a dark room, a hand behind the back, motion blur in a fast turn, a blank wall), the IMU is left on its own, and plain integration makes the virtual world swim within a second. Path Finder is a working answer to that moment, and each of its parts maps onto something an XR device already has:
+
+| Path Finder component | On an XR headset or controller |
+|---|---|
+| Degradation-aware noise: trust samples less as the sensor degrades | Weight the IMU by its health (saturation, temperature, dropped packets) instead of treating every sample alike |
+| Rest detection and zero-velocity updates | The user standing still, or a controller set down on a table |
+| Bounded-workspace prior | The play area (guardian boundary) is already known exactly. A tighter, true boundary is a stronger version of the prior we had to guess. |
+| Hold position when the sensor dies | Freeze the pose rather than extrapolate, so the scene does not drift away from the user |
+| Gravity-referenced attitude for unknown platforms | Head and hand motion: the TUM-VI sequences are a handheld rig with head-like motion |
+
+**Evidence on handheld motion.** On the six TUM-VI handheld sequences, which move like a head or a hand, IMU-only Path Finder averages **0.54 m** ATE against 1.08 m for standing still. It does this over two-minute recordings that get steadily worse and end with a dead sensor. It needs 1.2–2.7 ms of CPU per second of data and a 3 MB heap, which is small enough to run beside the main tracker as a fallback.
+
+**What would change for a real device.** Path Finder is an offline smoother: it looks at the whole recording, including what comes after each moment. A live fallback would use the same model as a fixed-lag smoother, delaying each pose by a fraction of a second, or as the forward filter alone. The rotor-drag observation is specific to multirotors and switches itself off on other platforms (Insight 2). We have not measured either variant on headset data. They are the natural next step.
+
 ## How much to trust these numbers
 
 Several choices were made after seeing data, and the hidden test may differ from ours. These checks estimate how much that matters:
@@ -122,6 +143,8 @@ pip install numpy                        # the only dependency
 python src/main.py path/to/imu0/data.csv estimated_trajectory.txt
 # also accepted: a folder containing imu0/data.csv (or mav0/imu0/data.csv), or a .zip of it
 ```
+
+Optional: `--sigma sigma.txt` also writes each row's 1-σ position uncertainty in metres (x, y, z). The trajectory output is byte-identical with or without it. It is calibrated by leave-one-sequence-out cross-validation: 67% of held-out errors fall inside 1σ (target 68%), and 84% inside 2σ (a Gaussian would give 95%, so large errors are more common than that). See `tools/calib_sigma.py` and `results/sigma_calibration.json`.
 
 With Docker:
 
@@ -231,6 +254,8 @@ docs/figures/          figures used here and in the deck
 docs/                  technical report (PDF) and demo video
 submission/            the Track 3 submission zip
 AI_DISCLOSURE.md       how AI assistance was used
+tests/                 output-contract tests (run in CI)
+docs/index.html        interactive results page (GitHub Pages)
 report/report.tex      LaTeX source of the technical report
 results/               per-file scores, ablation, cross-validation, blind-window sweep, stress tests
 Dockerfile, requirements.txt
