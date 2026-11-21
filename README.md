@@ -4,7 +4,28 @@
 
 Path Finder reconstructs a 6-DoF trajectory from a single degraded IMU stream: rising noise, bias and scale drift, spikes, stuck samples, dropouts, and a sensor that dies five seconds before the end. It uses no camera, no GPS, no waypoints and no ground truth at run time. It is one Python file that needs only NumPy, runs single-threaded, and outputs exactly one pose per input row.
 
-**Submission package:** [submission/SRMIST_vortexxx.zip](submission/SRMIST_vortexxx.zip) · **AI disclosure:** [AI_DISCLOSURE.md](AI_DISCLOSURE.md) · **Technical report (3 pages):** [docs/Path_Finder_technical_report.pdf](docs/Path_Finder_technical_report.pdf) · **Demo video:** [docs/demo.mp4](docs/demo.mp4) · **Deck:** [deck/SRMIST_vortexxx.pdf](deck/SRMIST_vortexxx.pdf)
+## Submission checklist
+
+Everything the organisers asked for is in this repository:
+
+| Item | Where |
+|---|---|
+| Submission package (Track 3 layout) | [`submission/SRMIST_vortexxx.zip`](submission/SRMIST_vortexxx.zip): `estimated_trajectory.txt`, `metadata.json`, `src/main.py`, `src/README.md`. The same files are also unzipped at the repository root. |
+| Source code | [`src/main.py`](src/main.py) (the estimator, NumPy only) and [`tools/`](tools/) (evaluation harness) |
+| Presentation | [`deck/SRMIST_vortexxx.pptx`](deck/SRMIST_vortexxx.pptx) (official template) · [PDF](deck/SRMIST_vortexxx.pdf) |
+| Video | [`docs/demo.mp4`](docs/demo.mp4), 2 min 45 s, captioned, no voice-over |
+| AI disclosure | [`AI_DISCLOSURE.md`](AI_DISCLOSURE.md) |
+| README | this file |
+| Technical report (additional) | [`docs/Path_Finder_technical_report.pdf`](docs/Path_Finder_technical_report.pdf), 3 pages ([LaTeX source](report/report.tex)) |
+| APK / SDK | not applicable: the deliverable is a Python script (a [`Dockerfile`](Dockerfile) is included) |
+
+## Team SRMIST_vortexxx
+
+| Member | Programme | College email |
+|---|---|---|
+| Raktim Chandra (primary) | B.Tech CSE, Software Engineering | rc8823@srmist.edu.in |
+| Nipun Dewangan | B.Tech Artificial Intelligence | nd9844@srmist.edu.in |
+| Pronov Mazumdar | B.Tech CSE, Big Data Analytics | pm2235@srmist.edu.in |
 
 ![Path Finder vs textbook strapdown integration](docs/figures/hero.png)
 
@@ -208,6 +229,8 @@ src/README.md          short run instructions (submission bundle)
 tools/                 evaluation harness, baselines, calibration, figures
 docs/figures/          figures used here and in the deck
 docs/                  technical report (PDF) and demo video
+submission/            the Track 3 submission zip
+AI_DISCLOSURE.md       how AI assistance was used
 report/report.tex      LaTeX source of the technical report
 results/               per-file scores, ablation, cross-validation, blind-window sweep, stress tests
 Dockerfile, requirements.txt
